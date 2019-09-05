@@ -1,0 +1,40 @@
+dev {
+  organization {
+    NAME = "libertyco"
+  }
+
+  client {
+    ROOT_DIRECTORY = "localhost:4200"
+  }
+
+  origins {
+    KEEP = "localhost:4200"
+    BLOCK = ""
+  }
+
+  mongo {
+    DATABASE = "userApi"
+    URI = "mongodb://localhost:27017/"
+    USERNAME = ""
+    PASSWORD = ""
+  }
+
+  secrets {
+    GITHUB {
+      SECRET = "GITHUB TOKEN",
+      KEY = "GITHUB KEY"
+    }
+    TWITTER {
+      SECRET = "TWITTER TOKEN",
+      KEY = "TWITTER KEY"
+    }
+    GOOGLE {
+      SECRET = "GOOGLE TOKEN",
+      KEY = "GOOGLE KEY"
+    }
+  }
+}
+
+prod {
+
+}

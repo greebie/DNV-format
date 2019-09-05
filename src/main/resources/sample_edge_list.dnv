@@ -1,0 +1,21 @@
+>DELIMITER=,
+>COMMENT=#
+>NODECOLUMNS=4
+>EDGECOLUMNS=5
+>DIRECTED=1
+
+# Nodes
+
+>NODES
+ID, LABEL, DESCRIPTION, AGE
+1, Bob Bobblewot, A person named Bob, 24
+2, Sandy Poland, A person named Sandy, 33
+3, Anderson Li, A person named Anderson, 87
+
+>EDGES
+
+TO, FROM, WEIGHT, SENTIMENT
+1, 2, 1, 0.123
+Bob Bobblewot, Anderson Li, 1, -0.5
+2, 3, 1, 0.999
+3, 3, 7, 0.0
