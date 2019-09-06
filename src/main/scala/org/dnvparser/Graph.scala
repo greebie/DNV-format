@@ -39,7 +39,7 @@ trait Graph {
   def attributes: Map[String, String] = Map[String, String]()
   var directed: Boolean = false
   def nodes: Vector[Node] = getNodes()
-  def edges: Vector[Edge] = Vector[Edge]()
+  def edges: Vector[Edge] = getEdges()
   def path: String // path to file
   val rules = getRules() // config options
 
@@ -49,6 +49,17 @@ trait Graph {
       line.slice(0,
         line.indexOf(Option(rules("COMMENT")).getOrElse("#"))).trim }
     else { line.trim }
+  }
+
+  def getId(id: String): String = {
+    if (nodes.map(x => x.attributes("ID")).contains(id)) {
+      id
+    } else if (nodes.map(x => x.attributes("LABEL")).contains(id)) {
+      nodes.filter(x => x.attributes("LABEL") == id)
+        .map(x => x.attributes("ID")).head
+    } else {
+      "ADD" + (nodes.length + 1).toString
+    }
   }
 
   /** Get the set of rules from the source file. **/
@@ -65,7 +76,6 @@ trait Graph {
   }
 
   def stringToArray(str: String): Option[List[String]] = {
-    println(str)
     str match {
       case ">ALL" => None
       case x => {
@@ -115,22 +125,6 @@ trait Graph {
     newEdges
   }
 
-  /** Gets the nodes from the source file. **/
-  def getNodes() = {
-    val source = Source.fromFile(path).getLines
-    val nodeSet = source.dropWhile(x => x != ">NODES")
-      .takeWhile(x => x != ">EDGES")
-    nodeSet.next()
-    val nodes = nodeSet.map(removeComments)
-      .flatMap( x => x match {
-        case "" => None
-        case x => Some(x.split(Option(rules("DELIMITER")).getOrElse(",")))
-      })
-    val hd: Array[String] = nodes.take(1).toList.head
-    val tail = nodes
-    tail.map((x: Array[String]) => Node(hd.zip(x).toMap)).toVector
-  }
-
   def nestedEdges(str: String) = {
     val delimiter = Option(rules("DELIMITER")).getOrElse(",")
     // matches "(1, 2, 3), (4, 5, 6), 7, 8, 9"
@@ -144,25 +138,39 @@ trait Graph {
       delimiter + ") (.+)").r
     str match {
       case regex1(nodeto, nodefrom, rest) => {
-        println("REGEX 1")
         edgesFromEdgeList(nodeto, nodefrom).map({ case(x, y) =>
-          (Array(x, y) ++ rest.split(delimiter)).toList
+          (Array(x, y) ++ rest.split(delimiter)).map(_.trim).toList
         }) }
       case regex2(nodeto, nodefrom, rest) => {
-        println("REGEX 2")
         edgesFromEdgeList(nodeto, nodefrom).map({ case(x, y) =>
-          (Array(x, y) ++ rest.split(delimiter)).toList
+          (Array(x, y) ++ rest.split(delimiter)).map(_.trim).toList
         }) }
       case regex3(nodeto, nodefrom, rest) => {
-        println("REGEX 3")
         edgesFromEdgeList(nodeto, nodefrom).map({ case(x, y) =>
-          (Array(x, y) ++ rest.split(delimiter)).toList
+          (Array(x, y) ++ rest.split(delimiter)).map(_.trim).toList
         }) }
       case _ => {
-        println("NO REGEX")
-        str.split(delimiter)
+        List(str.split(delimiter).map(_.trim).toList)
       }
     }
+  }
+
+  /** Gets the nodes from the source file. **/
+  def getNodes() = {
+    val source = Source.fromFile(path).getLines
+    val nodeSet = source.dropWhile(x => x != ">NODES")
+      .takeWhile(x => x != ">EDGES")
+    nodeSet.next()
+    val nodes = nodeSet.map(removeComments)
+      .flatMap( x => x match {
+        case "" => None
+        case x => Some(x.split(Option(rules("DELIMITER"))
+          .getOrElse(","))
+          .map(_.trim))
+      })
+    val hd: Array[String] = nodes.take(1).toList.head
+    val tail = nodes
+    tail.map((x: Array[String]) => Node(hd.zip(x).toMap)).toVector
   }
 
   def getEdges() = {
@@ -170,14 +178,20 @@ trait Graph {
     val edgeSet = source.dropWhile(x => x != ">EDGES")
     edgeSet.next()
     val edges = edgeSet.map(removeComments)
-    val hd: Array[String] = edges.take(1).next match {
-      case "" => Array("TO", "FROM", "WEIGHT") ++ (1 to rules("EDGECOLUMNS").toInt - 3)
-        .map(x => x.toString)
+    val hd: List[String] = edges.next match {
+      case "" => (Array("TO", "FROM", "WEIGHT") ++
+        (1 to rules("EDGECOLUMNS").toInt - 3)
+          .map(x => x.toString)).toList
       case x => x.split(Option(rules("DELIMITER")).getOrElse(","))
+        .map(_.trim).toList
     }
     if (hd.length != rules("EDGECOLUMNS").toInt) {
       logger.warn("Edge column rule does not correspond to actual column size.")
     }
+    val tail = edges
+    tail.map(nestedEdges).flatMap(x => x)
+      .map(x => x.patch(0, Seq(getId(x(0)), getId(x(1))), 2))
+      .map(x => Edge(hd.zip(x).toMap)).toVector
   }
   // End of Class
 }

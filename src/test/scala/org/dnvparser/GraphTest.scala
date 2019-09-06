@@ -43,7 +43,16 @@ class GraphTest extends FunSuite with Matchers {
     assert(rules("COMMENT") == "#")
     assert(rules("DELIMITER") == ",")
     assert(rules("NODECOLUMNS") == "4")
-    assert(rules("EDGECOLUMNS") == "5")
+    assert(rules("EDGECOLUMNS") == "4")
+  }
+
+  test("Remove Comments") {
+    val graph = Graph(file)
+    val testStr = graph.removeComments("Data here and # this is a comment")
+    val testStr2 = graph.removeComments("## comment at start of string")
+    val expected = "Data here and"
+    assert(testStr == expected)
+    assert(testStr2 == "")
   }
 
   test("Get nodes") {
@@ -76,12 +85,24 @@ class GraphTest extends FunSuite with Matchers {
   test ("Nested edges") {
     val str = """(a, b, c, d), en, f, g, h"""
     val nested = Graph(file).nestedEdges(str)
-    assert(nested == List(List("a", "en", "f", " g", " h"),
-      List("b", "en", "f", " g", " h"),
-      List("c", "en", "f", " g", " h"),
-      List("d", "en", "f", " g", " h")))
+    assert(nested == List(List("a", "en", "f", "g", "h"),
+      List("b", "en", "f", "g", "h"),
+      List("c", "en", "f", "g", "h"),
+      List("d", "en", "f", "g", "h")))
   }
 
+  test ("Get id") {
+    val str = Graph(file).getId("Bob Bobblewot")
+    assert(str == "1")
+  }
+
+
   test("Get edges") {
+    val graph = Graph(file)
+    val edges = graph.edges.take(3).map(x => x.attributes)
+    assert(edges.map(x => x("TO")) == Vector("1", "1", "1"))
+    assert(edges.map(x => x("FROM")) == List("2", "3", "1"))
+    assert(edges.map(x => x("WEIGHT")) == List("1", "1", "1"))
+    assert(edges.map(x => x("SENTIMENT")) == List("0.123", "-0.5", "0.999"))
   }
 }
