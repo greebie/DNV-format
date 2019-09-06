@@ -26,7 +26,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.igraph
+package org.dmvparser
 
 import scala.io.Source
 import org.scalatest.FunSuite
@@ -53,4 +53,35 @@ class GraphTest extends FunSuite with Matchers {
     assert(nodes == expected)
   }
 
+  test("Edge List") {
+    val graph = Graph(file)
+    val graph1 = graph.edgeList(List("A", "B", "C"))
+    val expected = List(("A", "B"), ("A", "C"), ("B", "C"))
+    val expected2 = List(("A", "B"), ("A", "C"), ("B", "A"), ("C", "A"),
+      ("B", "C"), ("C", "B"))
+    assert(graph1 == expected)
+    graph.directed = true
+    val graph2 = graph.edgeList(List("A", "B", "C"))
+    assert(graph2 == expected2)
+  }
+
+  test("Test Edges from EdgeList") {
+    val graph = Graph(file)
+    val edges1 = graph.edgesFromEdgeList("""(A,B,C)""", """(A,B,C)""")
+    val edges2 = graph.edgesFromEdgeList(">ALL", """(A,B,C)""")
+    assert(edges1(0) == ("A","A"))
+    assert(edges2 == List(("A", "B"), ("A", "C"), ("B", "C")))
+  }
+
+  test ("Nested edges") {
+    val str = """(a, b, c, d), en, f, g, h"""
+    val nested = Graph(file).nestedEdges(str)
+    assert(nested == List(List("a", "en", "f", " g", " h"),
+      List("b", "en", "f", " g", " h"),
+      List("c", "en", "f", " g", " h"),
+      List("d", "en", "f", " g", " h")))
+  }
+
+  test("Get edges") {
+  }
 }
