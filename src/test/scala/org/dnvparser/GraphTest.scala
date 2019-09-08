@@ -62,6 +62,13 @@ class GraphTest extends FunSuite with Matchers {
     assert(nodes == expected)
   }
 
+  test("String to Array") {
+    val none = Graph(file).stringToArray(">ALL")
+    val some = Graph(file).stringToArray("(1, 2, 3)")
+    assert(none == None)
+    assert(some == Some(List("1", "2", "3")))
+  }
+
   test("Edge List") {
     val graph = Graph(file)
     val graph1 = graph.edgeList(List("A", "B", "C"))
