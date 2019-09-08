@@ -4,7 +4,7 @@
 		module="scala-igraph-build"
 		revision="0.1.0-SNAPSHOT"
 		status="integration"
-		publication="20190908111943"
+		publication="20190908121935"
 		e:sbtVersion="1.0" e:scalaVersion="2.12"
 	>
 		<description>
@@ -35,7 +35,7 @@
 		<dependency org="org.scala-lang" name="scala-library" rev="2.12.7" conf="scala-tool->default,optional(default);provided->default(compile)"/>
 		<dependency org="org.scala-sbt" name="sbt" rev="1.2.8" conf="provided->default(compile)"/>
 		<dependency org="com.typesafe.sbt" name="sbt-native-packager" rev="1.3.25" conf="compile->default(compile)" e:sbtVersion="1.0" e:scalaVersion="2.12"/>
-		<dependency org="com.github.sbt" name="sbt-jacoco" rev="3.0.3" conf="compile->default(compile)" e:sbtVersion="1.0" e:scalaVersion="2.12"/>
+		<dependency org="org.scoverage" name="sbt-scoverage" rev="1.5.1" conf="compile->default(compile)" e:sbtVersion="1.0" e:scalaVersion="2.12"/>
 		<override org="org.scala-sbt" module="scripted-plugin_2.12" matcher="exact" rev="1.2.8"/>
 	</dependencies>
 </ivy-module>
