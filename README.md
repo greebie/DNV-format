@@ -1,3 +1,28 @@
+[![codecov](https://codecov.io/gh/greebie/DNV-format/branch/master/graph/badge.svg)](https://codecov.io/gh/greebie/DNV-format)
+
+# DNV PARSER USAGE - Quick Start
+
+Assuming you have a DNV format file at "/path/file.dnv":
+
+```
+graph = Graph("/path/file.dnv")
+```
+
+Will create a graph objects.  If you want to see the nodes type:
+
+```
+graph.nodes
+```
+
+similarly, the edges:
+
+```
+graph.edges
+```
+
+As the project grows, there will be other output options for Graphml and Gexf,
+for instance.
+
 # DNV (Delimited Network Values) Proposed Format and Scala Graph Parser
 
 > Note: Not all of the features described below are available at this time.
