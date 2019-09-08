@@ -1,4 +1,5 @@
 [![codecov](https://codecov.io/gh/greebie/DNV-format/branch/master/graph/badge.svg)](https://codecov.io/gh/greebie/DNV-format)
+[![Build Status](https://travis-ci.org/greebie/DNV-format.png)](https://travis-ci.org/greebie/DNV-format)
 
 # DNV PARSER USAGE - Quick Start
 
