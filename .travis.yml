@@ -1,11 +1,12 @@
 language: scala
+language: java
 scala: 2.12.6
 script: sbt ++$TRAVIS_SCALA_VERSION test
 env:
   - CODECOV_TOKEN="cc304cbb-4591-4cd3-8370-35d21e51bf5e"
 
 script:
-  - sbt clean jacoco test coverageReport
+  - sbt clean jacoco test
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
