@@ -1,3 +1,5 @@
+[![codecov](https://codecov.io/gh/greebie/DNV-format/branch/master/graph/badge.svg)](https://codecov.io/gh/greebie/DNV-format)
+
 # DNV PARSER USAGE - Quick Start
 
 Assuming you have a DNV format file at "/path/file.dnv":
