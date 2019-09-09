@@ -38,10 +38,8 @@ import org.scalatest.junit.JUnitRunner
 class GraphTest extends FunSuite with BeforeAndAfter {
   val file = getClass.getResource("/sample_edge_list.dnv").getPath
   val file2 = getClass.getResource("/sample_edge_list2.dnv").getPath
-  val fileEmpty = getClass.getResource("/sample_file_empty.dnv").getPath
   val graph = Graph(file)
   val graph2 = Graph(file2)
-  val graph3 = Graph(fileEmpty)
 
   before {
     graph.directed = false
