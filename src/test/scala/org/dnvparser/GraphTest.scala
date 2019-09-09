@@ -38,8 +38,10 @@ import org.scalatest.junit.JUnitRunner
 class GraphTest extends FunSuite with BeforeAndAfter {
   val file = getClass.getResource("/sample_edge_list.dnv").getPath
   val file2 = getClass.getResource("/sample_edge_list2.dnv").getPath
+  val fileEmpty = getClass.getResource("/sample_file_empty.dnv").getPath
   val graph = Graph(file)
   val graph2 = Graph(file2)
+  val graph3 = Graph(fileEmpty)
 
   before {
     graph.directed = false
@@ -81,16 +83,22 @@ class GraphTest extends FunSuite with BeforeAndAfter {
     val expected2 = List(("A", "B"), ("A", "C"), ("B", "A"), ("C", "A"),
       ("B", "C"), ("C", "B"))
     assert(graph1 == expected)
+    assert(graph.edgeList(Nil) == Nil)
     graph.directed = true
     val graph2 = graph.edgeList(List("A", "B", "C"))
     assert(graph2 == expected2)
+    assert(graph.edgeList(Nil) == Nil)
   }
 
   test("Test Edges from EdgeList") {
     val edges1 = graph.edgesFromEdgeList("""(A,B,C)""", """(A,B,C)""")
     val edges2 = graph.edgesFromEdgeList(">ALL", """(A,B,C)""")
+    val edges3 = graph.edgesFromEdgeList("""(A,B,C)""", ">ALL")
+    val edges4 = graph.edgesFromEdgeList(">ALL", ">ALL")
     assert(edges1(0) == ("A","A"))
     assert(edges2 == List(("A", "B"), ("A", "C"), ("B", "C")))
+    assert(edges3 == List(("A", "B"), ("A", "C"), ("B", "C")))
+    assert(edges4 == List[(String, String)]())
   }
 
   test ("Nested edges") {

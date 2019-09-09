@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory
 
 
 trait Graph {
-  val logger = Logger(LoggerFactory.getLogger("IGraph Graph Functions"))
+  val logger = Logger(LoggerFactory.getLogger("DNVParser Graph Functions"))
   def attributes: Map[String, String] = getAttributes()
   var directed: Boolean = false
   def nodes: Vector[Node] = getNodes()
@@ -69,7 +69,6 @@ trait Graph {
       .flatMap( line => {
         Option(line.slice(1, line.length).split("=")) match {
           case Some(Array(a, b)) => Some(a -> b)
-          case None => None
           case _ => None
       }
     }).toMap
