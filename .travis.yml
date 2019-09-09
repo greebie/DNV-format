@@ -1,10 +1,11 @@
 language: scala
 scala: 2.12.6
-env:
-  - CODECOV_TOKEN="cc304cbb-4591-4cd3-8370-35d21e51bf5e"
 
 script:
   - sbt clean coverage test coverageReport
 
 after_success:
   - bash <(curl -s https://codecov.io/bash) -t token
+
+codecov:
+  token: cc304cbb-4591-4cd3-8370-35d21e51bf5e
