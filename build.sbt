@@ -14,7 +14,7 @@ lazy val commonSettings = Seq(
 lazy val root = (project in file(".")).
   settings(commonSettings: _*).
   settings(
-    name := "prospect",
+    name := "dnv-parser",
     libraryDependencies ++= Seq(
       "org.scala-lang"    %  "scala-library"    % "2.12.6",
       "com.typesafe"      % "config"            % "1.3.3",
