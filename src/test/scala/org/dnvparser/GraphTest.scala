@@ -117,6 +117,7 @@ class GraphTest extends FunSuite with BeforeAndAfter {
     val expected = Map( "name" -> "Example Graph",
       "description" -> "An Example Graph")
     assert(graph.attributes == expected)
+    assert(graph2.attributes == Map[String, String]())
   }
 
 

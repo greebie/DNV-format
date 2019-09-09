@@ -197,7 +197,7 @@ trait Graph {
     val source = Source.fromFile(path).getLines
     val graphAttributes = source.dropWhile(x => x != ">GRAPH")
       .takeWhile(x => x != ">NODES")
-    graphAttributes.next()
+    if (graphAttributes.hasNext) graphAttributes.next()
     val atts = graphAttributes.map(removeComments)
       .flatMap(x => x match {
         case "" => None
@@ -205,8 +205,10 @@ trait Graph {
           .getOrElse(","))
           .map(_.trim))
       })
-    val hd = atts.next()
-    atts.map(x => hd.zip(x).toMap).next()
+    val hd = if (atts.hasNext) atts.next() else Array[String]()
+    if (atts.map(x => hd.zip(x).toMap).hasNext) {
+      atts.map(x => hd.zip(x).toMap).next()
+    } else { Map[String, String]()}
   }
   // End of Class
 }
