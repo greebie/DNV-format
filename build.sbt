@@ -7,7 +7,7 @@ resolvers in ThisBuild += "Typesafe Simple Repository" at
 
 lazy val commonSettings = Seq(
   version := "0.1-SNAPSHOT",
-  organization := "com.prospect",
+  organization := "com.dnv-parser",
   scalaVersion := "2.12.6"
 )
 

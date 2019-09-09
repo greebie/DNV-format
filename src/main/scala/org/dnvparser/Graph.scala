@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory
 
 trait Graph {
   val logger = Logger(LoggerFactory.getLogger("IGraph Graph Functions"))
-  def attributes: Map[String, String] = Map[String, String]()
+  def attributes: Map[String, String] = getAttributes()
   var directed: Boolean = false
   def nodes: Vector[Node] = getNodes()
   def edges: Vector[Edge] = getEdges()
@@ -192,6 +192,22 @@ trait Graph {
     tail.map(nestedEdges).flatMap(x => x)
       .map(x => x.patch(0, Seq(getId(x(0)), getId(x(1))), 2))
       .map(x => Edge(hd.zip(x).toMap)).toVector
+  }
+
+  def getAttributes(): Map[String, String] = {
+    val source = Source.fromFile(path).getLines
+    val graphAttributes = source.dropWhile(x => x != ">GRAPH")
+      .takeWhile(x => x != ">NODES")
+    graphAttributes.next()
+    val atts = graphAttributes.map(removeComments)
+      .flatMap(x => x match {
+        case "" => None
+        case n => Some(n.split(Option(rules("DELIMITER"))
+          .getOrElse(","))
+          .map(_.trim))
+      })
+    val hd = atts.next()
+    atts.map(x => hd.zip(x).toMap).next()
   }
   // End of Class
 }

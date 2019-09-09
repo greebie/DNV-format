@@ -4,6 +4,10 @@
 >EDGECOLUMNS=4
 >DIRECTED=1
 
+>GRAPH
+name, description
+Example Graph, An Example Graph
+
 # Nodes
 
 >NODES

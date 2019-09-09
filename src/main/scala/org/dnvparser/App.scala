@@ -1,5 +1,5 @@
 
-package org.igraph
+package org.dmvparser
 
 /**
  * @author ryan.deschamps

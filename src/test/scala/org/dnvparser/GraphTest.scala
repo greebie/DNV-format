@@ -103,6 +103,13 @@ class GraphTest extends FunSuite with Matchers {
     assert(str == "1")
   }
 
+  test("Get Attributes") {
+    val graph = Graph(file)
+    val expected = Map( "name" -> "Example Graph",
+      "description" -> "An Example Graph")
+    assert(graph.attributes == expected)
+  }
+
 
   test("Get edges") {
     val graph = Graph(file)
