@@ -184,9 +184,6 @@ trait Graph {
       case x => x.split(Option(rules("DELIMITER")).getOrElse(","))
         .map(_.trim).toList
     }
-    if (hd.length != rules("EDGECOLUMNS").toInt) {
-      logger.warn("Edge column rule does not correspond to actual column size.")
-    }
     val tail = edges
     tail.map(nestedEdges).flatMap(x => x)
       .map(x => x.patch(0, Seq(getId(x(0)), getId(x(1))), 2))
@@ -199,12 +196,8 @@ trait Graph {
       .takeWhile(x => x != ">NODES")
     if (graphAttributes.hasNext) graphAttributes.next()
     val atts = graphAttributes.map(removeComments)
-      .flatMap(x => x match {
-        case "" => None
-        case n => Some(n.split(Option(rules("DELIMITER"))
-          .getOrElse(","))
-          .map(_.trim))
-      })
+      .map(x => x.split(Option(rules("DELIMITER"))
+          .getOrElse(",")).map(_.trim))
     val hd = if (atts.hasNext) atts.next() else Array[String]()
     if (atts.map(x => hd.zip(x).toMap).hasNext) {
       atts.map(x => hd.zip(x).toMap).next()
