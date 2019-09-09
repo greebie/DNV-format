@@ -41,10 +41,10 @@ trait Graph {
   def nodes: Vector[Node] = getNodes()
   def edges: Vector[Edge] = getEdges()
   def path: String // path to file
-  val rules = getRules() // config options
+  val rules: Map[String, String] = getRules() // config options
 
   /** Removes comments based on rules. **/
-  def removeComments(line: String) = {
+  def removeComments(line: String): String = {
     if (line.contains(Option(rules("COMMENT")).getOrElse("#"))) {
       line.slice(0,
         line.indexOf(Option(rules("COMMENT")).getOrElse("#"))).trim }
@@ -63,7 +63,7 @@ trait Graph {
   }
 
   /** Get the set of rules from the source file. **/
-  def getRules() = {
+  def getRules(): Map[String, String] = {
     val source: Iterator[String] = Source.fromFile(path).getLines
     source.filter( line => line.headOption == Some('>'))
       .flatMap( line => {
@@ -124,7 +124,7 @@ trait Graph {
     newEdges
   }
 
-  def nestedEdges(str: String) = {
+  def nestedEdges(str: String): List[List[String]] = {
     val delimiter = Option(rules("DELIMITER")).getOrElse(",")
     // matches "(1, 2, 3), (4, 5, 6), 7, 8, 9"
     val regex1 = ("([\\[\\(].+?[\\]\\)]" + delimiter +
@@ -155,7 +155,7 @@ trait Graph {
   }
 
   /** Gets the nodes from the source file. **/
-  def getNodes() = {
+  def getNodes(): Vector[Node] = {
     val source = Source.fromFile(path).getLines
     val nodeSet = source.dropWhile(x => x != ">NODES")
       .takeWhile(x => x != ">EDGES")
@@ -172,7 +172,7 @@ trait Graph {
     tail.map((x: Array[String]) => Node(hd.zip(x).toMap)).toVector
   }
 
-  def getEdges() = {
+  def getEdges(): Vector[Edge] = {
     val source = Source.fromFile(path).getLines
     val edgeSet = source.dropWhile(x => x != ">EDGES")
     edgeSet.next()
