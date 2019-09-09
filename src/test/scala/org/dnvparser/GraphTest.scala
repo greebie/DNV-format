@@ -30,16 +30,23 @@ package org.dmvparser
 
 import scala.io.Source
 import org.scalatest.FunSuite
-import org.scalatest.Matchers
+import org.scalatest.BeforeAndAfter
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
-class GraphTest extends FunSuite with Matchers {
+class GraphTest extends FunSuite with BeforeAndAfter {
   val file = getClass.getResource("/sample_edge_list.dnv").getPath
+  val file2 = getClass.getResource("/sample_edge_list2.dnv").getPath
+  val graph = Graph(file)
+  val graph2 = Graph(file2)
+
+  before {
+    graph.directed = false
+  }
 
   test("Get rules for parsing from file") {
-    val rules = Graph(file).rules
+    val rules = graph.rules
     assert(rules("COMMENT") == "#")
     assert(rules("DELIMITER") == ",")
     assert(rules("NODECOLUMNS") == "4")
@@ -47,7 +54,6 @@ class GraphTest extends FunSuite with Matchers {
   }
 
   test("Remove Comments") {
-    val graph = Graph(file)
     val testStr = graph.removeComments("Data here and # this is a comment")
     val testStr2 = graph.removeComments("## comment at start of string")
     val expected = "Data here and"
@@ -56,21 +62,20 @@ class GraphTest extends FunSuite with Matchers {
   }
 
   test("Get nodes") {
-    val nodes = Graph(file).getNodes().take(3).map(x => x.attributes).toList
+    val nodes = graph.getNodes().take(3).map(x => x.attributes).toList
       .map(x => x("ID"))
     val expected = List("1", "2", "3")
     assert(nodes == expected)
   }
 
   test("String to Array") {
-    val none = Graph(file).stringToArray(">ALL")
-    val some = Graph(file).stringToArray("(1, 2, 3)")
+    val none = graph.stringToArray(">ALL")
+    val some = graph.stringToArray("(1, 2, 3)")
     assert(none == None)
     assert(some == Some(List("1", "2", "3")))
   }
 
   test("Edge List") {
-    val graph = Graph(file)
     val graph1 = graph.edgeList(List("A", "B", "C"))
     val expected = List(("A", "B"), ("A", "C"), ("B", "C"))
     val expected2 = List(("A", "B"), ("A", "C"), ("B", "A"), ("C", "A"),
@@ -82,7 +87,6 @@ class GraphTest extends FunSuite with Matchers {
   }
 
   test("Test Edges from EdgeList") {
-    val graph = Graph(file)
     val edges1 = graph.edgesFromEdgeList("""(A,B,C)""", """(A,B,C)""")
     val edges2 = graph.edgesFromEdgeList(">ALL", """(A,B,C)""")
     assert(edges1(0) == ("A","A"))
@@ -91,7 +95,7 @@ class GraphTest extends FunSuite with Matchers {
 
   test ("Nested edges") {
     val str = """(a, b, c, d), en, f, g, h"""
-    val nested = Graph(file).nestedEdges(str)
+    val nested = graph.nestedEdges(str)
     assert(nested == List(List("a", "en", "f", "g", "h"),
       List("b", "en", "f", "g", "h"),
       List("c", "en", "f", "g", "h"),
@@ -99,12 +103,11 @@ class GraphTest extends FunSuite with Matchers {
   }
 
   test ("Get id") {
-    val str = Graph(file).getId("Bob Bobblewot")
+    val str = graph.getId("Bob Bobblewot")
     assert(str == "1")
   }
 
   test("Get Attributes") {
-    val graph = Graph(file)
     val expected = Map( "name" -> "Example Graph",
       "description" -> "An Example Graph")
     assert(graph.attributes == expected)
@@ -112,11 +115,12 @@ class GraphTest extends FunSuite with Matchers {
 
 
   test("Get edges") {
-    val graph = Graph(file)
     val edges = graph.edges.take(3).map(x => x.attributes)
+    val edges2 = graph2.edges.take(3).map(x => x.attributes)
     assert(edges.map(x => x("TO")) == Vector("1", "1", "1"))
     assert(edges.map(x => x("FROM")) == List("2", "3", "1"))
     assert(edges.map(x => x("WEIGHT")) == List("1", "1", "1"))
     assert(edges.map(x => x("SENTIMENT")) == List("0.123", "-0.5", "0.999"))
+    assert(edges2(0) == Map("TO" -> "1", "FROM" -> "2", "WEIGHT" -> "1"))
   }
 }

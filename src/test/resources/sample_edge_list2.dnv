@@ -1,0 +1,24 @@
+>DELIMITER=,
+>COMMENT=#
+>NODECOLUMNS=4
+>EDGECOLUMNS=5
+>DIRECTED=1
+
+>GRAPH
+name, description
+Example Graph, An Example Graph
+
+# Nodes
+
+>NODES
+ID, LABEL, DESCRIPTION, AGE
+1, Bob Bobblewot, A person named Bob, 24
+2, Sandy Poland, A person named Sandy, 33
+3, Anderson Li, A person named Anderson, 87
+
+>EDGES
+
+1, 2, 1
+Bob Bobblewot, Anderson Li, 1
+2, 3, 1
+3, 3, 7
