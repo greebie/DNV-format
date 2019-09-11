@@ -45,6 +45,16 @@ class GraphTest extends FunSuite with BeforeAndAfter {
     graph.directed = false
   }
 
+  test("Get maximum of nodes or edges") {
+    val nodes = graph.maxNodeId(graph.nodes)
+    val edges = graph.maxNodeId(graph.edges)
+    assert(nodes == 2)
+    assert(edges == 17)
+    val newNode = Node(Map("ID" -> "ID", "LABEL" -> "LABEL",
+      "DESCRIPTION" -> "DESCRIPTION", "AGE" -> "33"))
+    assert(graph.addNode(newNode).map(_._2) == Vector(0, 1, 2, 3))
+  }
+
   test("Get rules for parsing from file") {
     val rules = graph.rules
     assert(rules("COMMENT") == "#")
@@ -62,7 +72,7 @@ class GraphTest extends FunSuite with BeforeAndAfter {
   }
 
   test("Get nodes") {
-    val nodes = graph.getNodes().take(3).map(x => x.attributes).toList
+    val nodes = graph.getNodes().take(3).map(x => x._1.attributes).toList
       .map(x => x("ID"))
     val expected = List("1", "2", "3")
     assert(nodes == expected)
@@ -99,6 +109,13 @@ class GraphTest extends FunSuite with BeforeAndAfter {
     assert(edges4 == List[(String, String)]())
   }
 
+  test ("Get id") {
+    val str = graph.getId("Bob Bobblewot")
+    val str2 = graph.getId("Robert", Some("PSEUDO"))
+    assert(str == "1")
+    assert(str2 == "1")
+  }
+
   test ("Nested edges") {
     val str = """(a, b, c, d), en, f, g, h"""
     val nested = graph.nestedEdges(str)
@@ -106,11 +123,6 @@ class GraphTest extends FunSuite with BeforeAndAfter {
       List("b", "en", "f", "g", "h"),
       List("c", "en", "f", "g", "h"),
       List("d", "en", "f", "g", "h")))
-  }
-
-  test ("Get id") {
-    val str = graph.getId("Bob Bobblewot")
-    assert(str == "1")
   }
 
   test("Get Attributes") {
@@ -122,8 +134,8 @@ class GraphTest extends FunSuite with BeforeAndAfter {
 
 
   test("Get edges") {
-    val edges = graph.edges.take(3).map(x => x.attributes)
-    val edges2 = graph2.edges.take(3).map(x => x.attributes)
+    val edges = graph.edges.take(3).map(x => x._1.attributes)
+    val edges2 = graph2.edges.take(3).map(x => x._1.attributes)
     assert(edges.map(x => x("TO")) == Vector("1", "1", "1"))
     assert(edges.map(x => x("FROM")) == List("2", "3", "1"))
     assert(edges.map(x => x("WEIGHT")) == List("1", "1", "1"))

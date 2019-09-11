@@ -11,10 +11,10 @@ Example Graph, An Example Graph
 # Nodes
 
 >NODES
-ID, LABEL, DESCRIPTION, AGE
-1, Bob Bobblewot, A person named Bob, 24
-2, Sandy Poland, A person named Sandy, 33
-3, Anderson Li, A person named Anderson, 87
+ID, LABEL, DESCRIPTION, PSEUDO, AGE
+1, Bob Bobblewot, A person named Bob, (Robert, Bobble, Rob), 24
+2, Sandy Poland, A person named Sandy, (Sandford), 33
+3, Anderson Li, A person named Anderson, (Andy, Anders), 87
 
 >EDGES
 TO, FROM, WEIGHT, SENTIMENT

@@ -35,11 +35,12 @@ import org.slf4j.LoggerFactory
 
 
 trait Graph {
+  case class NodesState(maxNodeId: Int, nodes: Vector[(Node, Int)])
   val logger = Logger(LoggerFactory.getLogger("DNVParser Graph Functions"))
   def attributes: Map[String, String] = getAttributes()
   var directed: Boolean = false
-  def nodes: Vector[Node] = getNodes()
-  def edges: Vector[Edge] = getEdges()
+  def edges: Vector[(Edge, Int)] = getEdges()
+  def nodes: Vector[(Node, Int)] = getNodes()
   def path: String // path to file
   val rules: Map[String, String] = getRules() // config options
 
@@ -51,14 +52,34 @@ trait Graph {
     else { line.trim }
   }
 
-  def getId(id: String): String = {
-    if (nodes.map(x => x.attributes("ID")).contains(id)) {
+  /** Get the maximum id value from nodes **/
+  def maxNodeId(vector: Vector[(_, Int)]): Int = {
+    vector.map(_._2).max
+  }
+
+  /** Adds a node to nodes **/
+  def addNode(node: Node): Vector[(Node, Int)] = {
+    nodes :+ (node, maxNodeId(nodes) + 1)
+  }
+
+  /** Gets the id from a String **/
+  def getId(id: String, alt: Option[String] = None): String = {
+    val delimiter = Option(rules("DELIMITER")).getOrElse(",")
+    if (nodes.map(x => x._1.attributes("ID")).contains(id)) {
       id
-    } else if (nodes.map(x => x.attributes("LABEL")).contains(id)) {
-      nodes.filter(x => x.attributes("LABEL") == id)
-        .map(x => x.attributes("ID")).head
+    } else if (nodes.map(x => x._1.attributes("LABEL")).contains(id)) {
+      nodes.filter(x => x._1.attributes("LABEL") == id)
+        .map(x => x._1.attributes("ID")).head
     } else {
-      "ADD" + (nodes.length + 1).toString
+      alt match {
+        case Some(att) => nodes.filter(x => {
+          stringToArray(x._1.attributes(att)).getOrElse(List[String]())
+          .contains(id) })
+          .map(x => x._1.attributes("ID")).head
+        case None => "ADD" + (nodes.length + 1).toString
+      }
+      // Add new node.
+
     }
   }
 
@@ -155,7 +176,9 @@ trait Graph {
   }
 
   /** Gets the nodes from the source file. **/
-  def getNodes(): Vector[Node] = {
+  def getNodes(): Vector[(Node, Int)] = {
+    val delimiter = Option(rules("DELIMITER")).getOrElse(",")
+    val regex = ("(.+) ([\\[\\(].+?[\\]\\)]" + delimiter + ") (.+)").r
     val source = Source.fromFile(path).getLines
     val nodeSet = source.dropWhile(x => x != ">NODES")
       .takeWhile(x => x != ">EDGES")
@@ -163,16 +186,25 @@ trait Graph {
     val nodes = nodeSet.map(removeComments)
       .flatMap( x => x match {
         case "" => None
-        case x => Some(x.split(Option(rules("DELIMITER"))
+        case regex(begin, parenth, end) => Some(begin
+          .split(delimiter)
+          .map(_.trim) ++ Array(parenth.toString
+            .substring(0, parenth.toString.length -1)
+            .replaceAll("[\\(\\)\\[\\]\\{\\}]", "")
+            .trim) ++
+          end.split(delimiter).map(_.trim))
+        case _ => Some(x.split(Option(rules("DELIMITER"))
           .getOrElse(","))
           .map(_.trim))
       })
     val hd: Array[String] = nodes.take(1).toList.head
     val tail = nodes
-    tail.map((x: Array[String]) => Node(hd.zip(x).toMap)).toVector
+    tail.map((x: Array[String]) => Node(hd.zip(x).toMap))
+      .toVector
+      .zipWithIndex
   }
 
-  def getEdges(): Vector[Edge] = {
+  def getEdges(): Vector[(Edge, Int)] = {
     val source = Source.fromFile(path).getLines
     val edgeSet = source.dropWhile(x => x != ">EDGES")
     edgeSet.next()
@@ -187,7 +219,9 @@ trait Graph {
     val tail = edges
     tail.map(nestedEdges).flatMap(x => x)
       .map(x => x.patch(0, Seq(getId(x(0)), getId(x(1))), 2))
-      .map(x => Edge(hd.zip(x).toMap)).toVector
+      .map(x => Edge(hd.zip(x).toMap))
+      .toVector
+      .zipWithIndex
   }
 
   def getAttributes(): Map[String, String] = {
