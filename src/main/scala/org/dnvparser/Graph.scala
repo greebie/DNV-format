@@ -32,15 +32,18 @@ import scala.io.Source
 import scala.collection
 import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
+import scala.math.max
 
 
 trait Graph {
-  case class NodesState(maxNodeId: Int, nodes: Vector[(Node, Int)])
+  case class NodesState(maxNodeId: String, nodes: Vector[(Node, Int)])
+  case class Node(nid: String, label: String, attributes: Map[String, String])
+  case class Edge(eto: String, efrom: String, attributes: Map[String, String])
   val logger = Logger(LoggerFactory.getLogger("DNVParser Graph Functions"))
   def attributes: Map[String, String] = getAttributes()
   var directed: Boolean = false
-  def edges: Vector[(Edge, Int)] = getEdges()
-  def nodes: Vector[(Node, Int)] = getNodes()
+  def edges: Vector[Edge] = getEdges()
+  def nodes: Vector[Node] = getAllNodes()
   def path: String // path to file
   val rules: Map[String, String] = getRules() // config options
 
@@ -53,33 +56,65 @@ trait Graph {
   }
 
   /** Get the maximum id value from nodes **/
-  def maxNodeId(vector: Vector[(_, Int)]): Int = {
-    vector.map(_._2).max
+  def maxNodeId(vector: Vector[Node]): String = {
+     vector.map(_.nid.toLong).max.toString
+  }
+
+  def maxEdgeId(vector: Vector[Edge]): String = {
+    vector.map(n => max(n.eto.toLong, n.efrom.toLong))
+      .max.toString
+  }
+
+  def getAllNodes(): Vector[Node] = {
+    val nodes: Vector[Node] = getNodes()
+    val hd: Iterable[String] = getNodes().map(_.attributes.keys).head
+    val start = maxNodeId(nodes).toLong + 1
+    nodes ++ getEdges()
+      .filter(edge => getId(edge.eto) == None || getId(edge.efrom) == None)
+      .flatMap(edge => List(
+        getId(edge.eto) match {
+          case None => edge.eto
+          case _ => "" },
+        getId(edge.efrom) match {
+          case None => edge.efrom
+          case _ => ""
+        }))
+      .filter(node => node != "")
+      .distinct
+      .zipWithIndex
+      .map(n => Node((start + n._2).toString,
+        n._1.toString, hd.map(x => x match {
+          case "ID" => (x, n._1)
+          case "LABEL" => (x, n._1)
+          case _ => (x, "")
+        }).toMap)).toVector
   }
 
   /** Adds a node to nodes **/
-  def addNode(node: Node): Vector[(Node, Int)] = {
-    nodes :+ (node, maxNodeId(nodes) + 1)
+  def addNode(node: Map[String, String]): Vector[Node] = {
+    nodes :+ Node((maxNodeId(nodes) + 1).toString, node("LABEL"), node)
   }
 
-  /** Gets the id from a String **/
-  def getId(id: String, alt: Option[String] = None): String = {
+  /** Gets the node id corresponding to a String **/
+  def getId(id: String, alt: Option[String] = None): Option[String] = {
+    val nodes = getNodes()
     val delimiter = Option(rules("DELIMITER")).getOrElse(",")
-    if (nodes.map(x => x._1.attributes("ID")).contains(id)) {
-      id
-    } else if (nodes.map(x => x._1.attributes("LABEL")).contains(id)) {
-      nodes.filter(x => x._1.attributes("LABEL") == id)
-        .map(x => x._1.attributes("ID")).head
+    if (nodes.map(x => x.nid).contains(id)) {
+      Some(id)
+    } else if (nodes.map(x => x.attributes("ID")).contains(id)) {
+      Some(nodes.filter(x => x.attributes("ID") == id)
+        .map(x => x.nid).head.toString)
+    } else if (nodes.map(x => x.attributes("LABEL")).contains(id)) {
+      Some(nodes.filter(x => x.attributes("LABEL") == id)
+        .map(x => x.nid).head.toString)
     } else {
       alt match {
-        case Some(att) => nodes.filter(x => {
-          stringToArray(x._1.attributes(att)).getOrElse(List[String]())
+        case Some(att) => Some(nodes.filter(x => {
+          stringToArray(x.attributes(att)).getOrElse(List[String]())
           .contains(id) })
-          .map(x => x._1.attributes("ID")).head
-        case None => "ADD" + (nodes.length + 1).toString
+          .map(x => x.nid).head.toString)
+        case _ => None
       }
-      // Add new node.
-
     }
   }
 
@@ -176,7 +211,7 @@ trait Graph {
   }
 
   /** Gets the nodes from the source file. **/
-  def getNodes(): Vector[(Node, Int)] = {
+  def getNodes(): Vector[Node] = {
     val delimiter = Option(rules("DELIMITER")).getOrElse(",")
     val regex = ("(.+) ([\\[\\(].+?[\\]\\)]" + delimiter + ") (.+)").r
     val source = Source.fromFile(path).getLines
@@ -199,12 +234,13 @@ trait Graph {
       })
     val hd: Array[String] = nodes.take(1).toList.head
     val tail = nodes
-    tail.map((x: Array[String]) => Node(hd.zip(x).toMap))
+    tail.map((x: Array[String]) => hd.zip(x).toMap)
       .toVector
       .zipWithIndex
+      .map({case (atts, id) => Node(id.toString, atts("LABEL"), atts)})
   }
 
-  def getEdges(): Vector[(Edge, Int)] = {
+  def getEdges(): Vector[Edge] = {
     val source = Source.fromFile(path).getLines
     val edgeSet = source.dropWhile(x => x != ">EDGES")
     edgeSet.next()
@@ -218,10 +254,9 @@ trait Graph {
     }
     val tail = edges
     tail.map(nestedEdges).flatMap(x => x)
-      .map(x => x.patch(0, Seq(getId(x(0)), getId(x(1))), 2))
-      .map(x => Edge(hd.zip(x).toMap))
-      .toVector
-      .zipWithIndex
+      .map(x => hd.zip(x).toMap)
+      .map(atts => Edge(getId(atts("TO")).getOrElse(atts("TO")),
+        getId(atts("FROM")).getOrElse(atts("FROM")), atts)).toVector
   }
 
   def getAttributes(): Map[String, String] = {
@@ -247,33 +282,5 @@ class GraphImpl(val path: String) extends Graph {
 object Graph {
   def apply(path: String) = {
     new GraphImpl(path)
-  }
-}
-
-trait Node {
-  def attributes: Map[String, String]
-}
-
-class NodeImpl (val attributes: Map[String, String]) extends Node {
-
-}
-
-object Node {
-  def apply(attr: Map[String, String]) = {
-    new NodeImpl(attr)
-  }
-}
-
-trait Edge {
-  def attributes: Map[String, String]
-}
-
-class EdgeImpl (val attributes: Map[String, String]) extends Edge {
-
-}
-
-object Edge {
-  def apply(attr: Map[String, String]) = {
-    new EdgeImpl(attr)
   }
 }
