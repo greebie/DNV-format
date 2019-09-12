@@ -47,12 +47,11 @@ class GraphTest extends FunSuite with BeforeAndAfter {
 
   test("Get maximum of nodes or edges") {
     val nodes = graph.maxNodeId(graph.nodes)
-    val edges = graph.maxNodeId(graph.edges)
-    assert(nodes == 2)
-    assert(edges == 17)
-    val newNode = Node(Map("ID" -> "ID", "LABEL" -> "LABEL",
-      "DESCRIPTION" -> "DESCRIPTION", "AGE" -> "33"))
-    assert(graph.addNode(newNode).map(_._2) == Vector(0, 1, 2, 3))
+    val edges = graph.maxEdgeId(graph.edges)
+    assert(nodes.toInt == 8)
+    val newNode = Map("ID" -> "ID", "LABEL" -> "LABEL",
+      "DESCRIPTION" -> "DESCRIPTION", "AGE" -> "33")
+    assert(graph.addNode(newNode).map(_.nid.toInt).take(3) == Vector(0, 1, 2))
   }
 
   test("Get rules for parsing from file") {
@@ -72,7 +71,7 @@ class GraphTest extends FunSuite with BeforeAndAfter {
   }
 
   test("Get nodes") {
-    val nodes = graph.getNodes().take(3).map(x => x._1.attributes).toList
+    val nodes = graph.getNodes().take(3).map(x => x.attributes).toList
       .map(x => x("ID"))
     val expected = List("1", "2", "3")
     assert(nodes == expected)
@@ -112,8 +111,8 @@ class GraphTest extends FunSuite with BeforeAndAfter {
   test ("Get id") {
     val str = graph.getId("Bob Bobblewot")
     val str2 = graph.getId("Robert", Some("PSEUDO"))
-    assert(str == "1")
-    assert(str2 == "1")
+    assert(str == Some("0"))
+    assert(str2 == Some("0"))
   }
 
   test ("Nested edges") {
@@ -134,12 +133,22 @@ class GraphTest extends FunSuite with BeforeAndAfter {
 
 
   test("Get edges") {
-    val edges = graph.edges.take(3).map(x => x._1.attributes)
-    val edges2 = graph2.edges.take(3).map(x => x._1.attributes)
-    assert(edges.map(x => x("TO")) == Vector("1", "1", "1"))
-    assert(edges.map(x => x("FROM")) == List("2", "3", "1"))
-    assert(edges.map(x => x("WEIGHT")) == List("1", "1", "1"))
-    assert(edges.map(x => x("SENTIMENT")) == List("0.123", "-0.5", "0.999"))
-    assert(edges2(0) == Map("TO" -> "1", "FROM" -> "2", "WEIGHT" -> "1"))
+    val edges = graph.edges.take(3).map(x => x.eto)
+    val edges1 = graph.edges.take(3).map(x => x.efrom)
+    val edges2 = graph.edges.take(3).map(x => x.attributes)
+    val edges3 = graph2.edges.take(3).map(x => x.attributes)
+    assert(edges == Vector("1", "0", "1"))
+    assert(edges1 == Vector("2", "2", "1"))
+    assert(edges2.map(x => x("WEIGHT")) == Vector("1", "1", "1"))
+    assert(edges2.map(x => x("SENTIMENT")) == Vector("0.123", "-0.5", "0.999"))
+    assert(edges3(0) == Map("TO" -> "1", "FROM" -> "2",
+      "WEIGHT" -> "1"))
+  }
+
+  test("Get All Nodes") {
+    val nodes = graph.nodes.take(5).toList
+    assert(nodes.map(x => x.nid) == List("0", "1", "2", "3", "4"))
+    assert(nodes.map(x => x.label) == List("Bob Bobblewot",
+      "Sandy Poland", "Anderson Li", "4", "7"))
   }
 }
