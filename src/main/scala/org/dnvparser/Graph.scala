@@ -37,12 +37,10 @@ import scala.math.max
 
 trait Graph {
   case class NodesState(maxNodeId: String, nodes: Vector[(Node, Int)])
-  case class Node(nid: String, label: String, attributes: Map[String, String])
-  case class Edge(eto: String, efrom: String, attributes: Map[String, String])
   val logger = Logger(LoggerFactory.getLogger("DNVParser Graph Functions"))
   def attributes: Map[String, String] = getAttributes()
   var directed: Boolean = false
-  def edges: Vector[Edge] = getEdges()
+  def edges: Vector[Edge] = getAllEdges()
   def nodes: Vector[Node] = getAllNodes()
   def path: String // path to file
   val rules: Map[String, String] = getRules() // config options
@@ -67,52 +65,68 @@ trait Graph {
 
   def getAllNodes(): Vector[Node] = {
     val nodes: Vector[Node] = getNodes()
-    val hd: Iterable[String] = getNodes().map(_.attributes.keys).head
+    val hd: Iterable[String] = getNodes().map(_.attributes.keySet).head
     val start = maxNodeId(nodes).toLong + 1
     nodes ++ getEdges()
-      .filter(edge => getId(edge.eto) == None || getId(edge.efrom) == None)
+      .filter(edge => getId(edge.attributes("TO")) == None ||
+        getId(edge.attributes("FROM")) == None)
       .flatMap(edge => List(
-        getId(edge.eto) match {
-          case None => edge.eto
-          case _ => "" },
-        getId(edge.efrom) match {
-          case None => edge.efrom
-          case _ => ""
+        // if there is no node for an edge, keep the edge name for now.
+        // then flatten them into a list of nodes with no Node object.
+        getId(edge.attributes("TO")) match {
+          case None => edge.attributes("TO")
+          case Some(x) => -1 },
+        getId(edge.efrom.toString) match {
+          case None => edge.attributes("FROM")
+          case Some(x) => -1
         }))
-      .filter(node => node != "")
+      .filter(node => node != -1)
       .distinct
-      .zipWithIndex
-      .map(n => Node((start + n._2).toString,
-        n._1.toString, hd.map(x => x match {
-          case "ID" => (x, n._1)
-          case "LABEL" => (x, n._1)
+      // auto number the nodes to create ids.
+      .zipWithIndex.map({ case (n, ind) => (n, ind + start) })
+      .map(n => Node(n._2, n._1.toString,
+        hd.map(x => x match {
+          case "ID" => (x, n._1.toString)
+          case "LABEL" => (x, n._1.toString)
           case _ => (x, "")
         }).toMap)).toVector
   }
 
-  /** Adds a node to nodes **/
-  def addNode(node: Map[String, String]): Vector[Node] = {
-    nodes :+ Node((maxNodeId(nodes) + 1).toString, node("LABEL"), node)
+  def getAllEdges(): Vector[Edge] = {
+    getEdges().map(x => Edge(getId(x.attributes("FROM"), all_nodes=true).getOrElse(-1),
+        getId(x.attributes("TO"), all_nodes=true).getOrElse(-1), x.attributes))
+        .filter(x => x.eto != -1 || x.efrom != -1)
+  }
+
+  /** Gets the node based on the id **/
+  def getNodeByIdentifier(nodeId: String): Option[Node] = {
+    getId(nodeId) match {
+      case Some(nid) => Some(nodes.filter(x => x.nid == nid).head)
+      case None => None
+    }
+  }
+
+  def getNodeById(nodeId: Long) : Option[Node] = {
+    nodes.filter(x => x.nid == nodeId).headOption
   }
 
   /** Gets the node id corresponding to a String **/
-  def getId(id: String, alt: Option[String] = None): Option[String] = {
-    val nodes = getNodes()
+  def getId(ident: String, alt: Option[String] = None,
+    all_nodes: Boolean = false): Option[Long] = {
+    val nodex = if (all_nodes) nodes  else getNodes()
     val delimiter = Option(rules("DELIMITER")).getOrElse(",")
-    if (nodes.map(x => x.nid).contains(id)) {
-      Some(id)
-    } else if (nodes.map(x => x.attributes("ID")).contains(id)) {
-      Some(nodes.filter(x => x.attributes("ID") == id)
-        .map(x => x.nid).head.toString)
-    } else if (nodes.map(x => x.attributes("LABEL")).contains(id)) {
-      Some(nodes.filter(x => x.attributes("LABEL") == id)
-        .map(x => x.nid).head.toString)
+    if (nodex.map(x => x.attributes("ID")).contains(ident)) {
+      Some(nodex.filter(x => x.attributes("ID") == ident)
+        .map(x => x.nid).head)
+    } else if (nodex.map(x => x.attributes("LABEL")).contains(ident)) {
+      Some(nodex.filter(x => x.attributes("LABEL") == ident)
+        .map(x => x.nid).head)
     } else {
       alt match {
-        case Some(att) => Some(nodes.filter(x => {
+        case Some(att) => Some(nodex.filter(x => {
           stringToArray(x.attributes(att)).getOrElse(List[String]())
-          .contains(id) })
-          .map(x => x.nid).head.toString)
+          .contains(ident) })
+          .map(x => x.nid).head)
         case _ => None
       }
     }
@@ -192,16 +206,16 @@ trait Graph {
     val regex3 = ("(>?[0-9a-zA-Z]+" + delimiter + ") ([\\[\\(].+?[\\]\\)]" +
       delimiter + ") (.+)").r
     str match {
-      case regex1(nodeto, nodefrom, rest) => {
-        edgesFromEdgeList(nodeto, nodefrom).map({ case(x, y) =>
+      case regex1(nodefrom, nodeto, rest) => {
+        edgesFromEdgeList(nodefrom, nodeto).map({ case(x, y) =>
           (Array(x, y) ++ rest.split(delimiter)).map(_.trim).toList
         }) }
-      case regex2(nodeto, nodefrom, rest) => {
-        edgesFromEdgeList(nodeto, nodefrom).map({ case(x, y) =>
+      case regex2(nodefrom, nodeto, rest) => {
+        edgesFromEdgeList(nodefrom, nodeto).map({ case(x, y) =>
           (Array(x, y) ++ rest.split(delimiter)).map(_.trim).toList
         }) }
-      case regex3(nodeto, nodefrom, rest) => {
-        edgesFromEdgeList(nodeto, nodefrom).map({ case(x, y) =>
+      case regex3(nodefrom, nodeto, rest) => {
+        edgesFromEdgeList(nodefrom, nodeto).map({ case(x, y) =>
           (Array(x, y) ++ rest.split(delimiter)).map(_.trim).toList
         }) }
       case _ => {
@@ -237,7 +251,7 @@ trait Graph {
     tail.map((x: Array[String]) => hd.zip(x).toMap)
       .toVector
       .zipWithIndex
-      .map({case (atts, id) => Node(id.toString, atts("LABEL"), atts)})
+      .map({case (atts, id) => Node(id, atts("LABEL"), atts)})
   }
 
   def getEdges(): Vector[Edge] = {
@@ -246,7 +260,7 @@ trait Graph {
     edgeSet.next()
     val edges = edgeSet.map(removeComments)
     val hd: List[String] = edges.next match {
-      case "" => (Array("TO", "FROM", "WEIGHT") ++
+      case "" => (Array("FROM", "TO", "WEIGHT") ++
         (1 to rules("EDGECOLUMNS").toInt - 3)
           .map(x => x.toString)).toList
       case x => x.split(Option(rules("DELIMITER")).getOrElse(","))
@@ -255,8 +269,7 @@ trait Graph {
     val tail = edges
     tail.map(nestedEdges).flatMap(x => x)
       .map(x => hd.zip(x).toMap)
-      .map(atts => Edge(getId(atts("TO")).getOrElse(atts("TO")),
-        getId(atts("FROM")).getOrElse(atts("FROM")), atts)).toVector
+      .map(atts => Edge(-1, -1, atts)).toVector
   }
 
   def getAttributes(): Map[String, String] = {

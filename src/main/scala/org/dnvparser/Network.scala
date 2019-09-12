@@ -26,11 +26,42 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ package org.dmvparser
 
-package org
+ import breeze.linalg.{DenseVector}
 
-package object dmvparser {
-  case class Node(nid: Long = -1, label: String = "-1",
-    attributes: Map[String, String] = Map[String, String]())
-  case class Edge(efrom: Long, eto: Long, attributes: Map[String, String])
-}
+ trait Network extends Graph {
+   def nodeSet(vector: Vector[Node]): Set[String] = {
+     vector.map(x => x.label).toSet
+   }
+
+   def outNeighbors (nodeIdent: String): Vector[Node] = {
+     edges.filter(x => x.efrom == getId(nodeIdent, all_nodes=true).getOrElse(-1))
+       .map(x => getNodeById(x.eto) match {
+         case Some(node) => node
+         case None => Node()
+       }).distinct
+   }
+
+   def inNeighbors(nodeIdent: String): Vector[Node] = {
+     edges.filter(x => x.eto == getId(nodeIdent, all_nodes=true).getOrElse(-1))
+       .map(x => getNodeById(x.efrom) match {
+         case Some(node) => node
+         case None => Node()
+       }).distinct
+   }
+
+   def neighbors(nodeIdent: String): Vector[Node] = {
+     (outNeighbors(nodeIdent) ++ inNeighbors(nodeIdent)).distinct
+   }
+ }
+
+ class NetworkImpl (val path: String) extends Network {
+
+ }
+
+ object Network {
+   def apply(path: String) = {
+     new NetworkImpl(path)
+   }
+ }

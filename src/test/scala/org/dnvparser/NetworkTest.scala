@@ -26,11 +26,29 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+package org.dmvparser
 
-package org
+import scala.io.Source
+import org.scalatest.FunSuite
+import org.scalatest.BeforeAndAfter
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 
-package object dmvparser {
-  case class Node(nid: Long = -1, label: String = "-1",
-    attributes: Map[String, String] = Map[String, String]())
-  case class Edge(efrom: Long, eto: Long, attributes: Map[String, String])
+@RunWith(classOf[JUnitRunner])
+class NetworkTest extends FunSuite with BeforeAndAfter {
+  val file = getClass.getResource("/sample_edge_list.dnv").getPath
+  val file2 = getClass.getResource("/sample_edge_list2.dnv").getPath
+  val network = Network(file)
+
+  test ("Get neighbours of Node") {
+    val nodeIdent: String = "Bob Bobblewot"
+    val nodeIdent2: String = "George"
+    assert(network.outNeighbors(nodeIdent).map(_.nid) == Vector(1, 2, 0))
+    assert(network.inNeighbors(nodeIdent).map(_.nid) == Vector(0, 1, 2, 3))
+    assert(network.neighbors(nodeIdent).map(_.nid) == Vector(1, 2, 0, 3))
+    assert(network.outNeighbors(nodeIdent2).map(_.nid) == Vector(4, 6, 7))
+    assert(network.inNeighbors(nodeIdent2).map(_.nid) == Vector())
+    assert(network.neighbors(nodeIdent2).map(_.nid) == Vector(4, 6, 7))
+  }
+
 }

@@ -20,7 +20,9 @@ lazy val root = (project in file(".")).
       "com.typesafe"      % "config"            % "1.3.3",
       "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
       "ch.qos.logback" % "logback-classic" % "1.2.3",
+      "org.scalanlp" %% "breeze" % "1.0",
+      "org.scalanlp" %% "breeze-natives" % "1.0",
+      "org.scalanlp" %% "breeze-viz" % "1.0",
       "org.scalatest"     %% "scalatest"        % "3.0.5"     % Test,
       "junit"             % "junit"             % "4.12"      % Test,
-    )
-  )
+    ))
