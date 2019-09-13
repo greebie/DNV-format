@@ -28,11 +28,15 @@
 
  package org.dmvparser
 
- import breeze.linalg.{DenseVector}
+ import breeze.linalg.{DenseVector, DenseMatrix}
+ import breeze.linalg.{eig, min, max}
+ import breeze.linalg.operators.OpMulInner._
 
  trait Network extends Graph {
-   def nodeSet(vector: Vector[Node]): Set[String] = {
-     vector.map(x => x.label).toSet
+   val matrix = adjacencyMatrix()
+
+   def nodeSet(): Vector[(Long, String)] = {
+     nodes.map(x => (x.nid, x.label)).distinct
    }
 
    def outNeighbors (nodeIdent: String): Vector[Node] = {
@@ -51,8 +55,52 @@
        }).distinct
    }
 
+   def neighborsVector(nodeIdent: String,
+     weighted: Boolean = false): DenseVector[Double] = {
+       // weighted logic here.
+     val neighbors = outNeighbors(nodeIdent)
+     val nodeset = (nodeSet()
+       .map({case (id, label) => if (neighbors.map(_.nid).contains(id)) { 1.0 }
+         else { 0.0 }})).toArray
+     DenseVector(nodeset)
+   }
+
    def neighbors(nodeIdent: String): Vector[Node] = {
-     (outNeighbors(nodeIdent) ++ inNeighbors(nodeIdent)).distinct
+     if (directed) {
+       outNeighbors(nodeIdent) ++ inNeighbors(nodeIdent)
+     } else {
+       (outNeighbors(nodeIdent) ++ inNeighbors(nodeIdent)).distinct }
+   }
+
+   def degreeMatrix(degType:String = "all"): DenseMatrix[Double] = {
+     val degrees = nodeSet().map({case (id, label) => degType match {
+       case "in" => inNeighbors(label).length.toDouble
+       case "out" => outNeighbors(label).length.toDouble
+       case "all" => neighbors(label).length.toDouble
+     }}).toArray
+     DenseMatrix(degrees)
+   }
+
+   def adjacencyMatrix(): DenseMatrix[Double] = {
+     val vectors = nodeSet().map({case (id, label) =>
+       neighborsVector(label).toArray})
+     DenseMatrix(vectors:_*)
+   }
+
+   def eigenvectorMatrix(): DenseMatrix[Double] = {
+     eig(matrix).eigenvectors
+   }
+
+   def normalizeValues(vals: DenseMatrix[Double]) = {
+     val minimum = min(vals)
+     val maximum = max(vals)
+     vals.map( x => ((x - minimum) / (maximum - minimum)))
+   }
+
+   def eigenVectorCentrality() = {
+     val values = eigenvectorMatrix()
+     val degrees = degreeMatrix()
+     values * degrees.t
    }
  }
 

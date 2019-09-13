@@ -34,16 +34,17 @@ import com.typesafe.scalalogging.Logger
 import org.slf4j.LoggerFactory
 import scala.math.max
 
-
 trait Graph {
   case class NodesState(maxNodeId: String, nodes: Vector[(Node, Int)])
   val logger = Logger(LoggerFactory.getLogger("DNVParser Graph Functions"))
+  val rules: Map[String, String] = getRules() // config options
   def attributes: Map[String, String] = getAttributes()
   var directed: Boolean = false
-  def edges: Vector[Edge] = getAllEdges()
-  def nodes: Vector[Node] = getAllNodes()
+  val firstNodes: Vector[Node] = getNodes()
+  val firstEdges: Vector[Edge] = getEdges()
+  val nodes: Vector[Node] = getAllNodes()
+  val edges: Vector[Edge] = getAllEdges()
   def path: String // path to file
-  val rules: Map[String, String] = getRules() // config options
 
   /** Removes comments based on rules. **/
   def removeComments(line: String): String = {
@@ -64,10 +65,10 @@ trait Graph {
   }
 
   def getAllNodes(): Vector[Node] = {
-    val nodes: Vector[Node] = getNodes()
-    val hd: Iterable[String] = getNodes().map(_.attributes.keySet).head
+    val nodes: Vector[Node] = firstNodes
+    val hd: Iterable[String] = firstNodes.map(_.attributes.keySet).head
     val start = maxNodeId(nodes).toLong + 1
-    nodes ++ getEdges()
+    nodes ++ firstEdges
       .filter(edge => getId(edge.attributes("TO")) == None ||
         getId(edge.attributes("FROM")) == None)
       .flatMap(edge => List(
@@ -93,7 +94,7 @@ trait Graph {
   }
 
   def getAllEdges(): Vector[Edge] = {
-    getEdges().map(x => Edge(getId(x.attributes("FROM"), all_nodes=true).getOrElse(-1),
+    firstEdges.map(x => Edge(getId(x.attributes("FROM"), all_nodes=true).getOrElse(-1),
         getId(x.attributes("TO"), all_nodes=true).getOrElse(-1), x.attributes))
         .filter(x => x.eto != -1 || x.efrom != -1)
   }
@@ -113,7 +114,7 @@ trait Graph {
   /** Gets the node id corresponding to a String **/
   def getId(ident: String, alt: Option[String] = None,
     all_nodes: Boolean = false): Option[Long] = {
-    val nodex = if (all_nodes) nodes  else getNodes()
+    val nodex = if (all_nodes) nodes  else firstNodes
     val delimiter = Option(rules("DELIMITER")).getOrElse(",")
     if (nodex.map(x => x.attributes("ID")).contains(ident)) {
       Some(nodex.filter(x => x.attributes("ID") == ident)
@@ -246,7 +247,7 @@ trait Graph {
           .getOrElse(","))
           .map(_.trim))
       })
-    val hd: Array[String] = nodes.take(1).toList.head
+    val hd: Array[String] = nodes.take(1).toList.head.map(_.trim.toUpperCase)
     val tail = nodes
     tail.map((x: Array[String]) => hd.zip(x).toMap)
       .toVector
@@ -264,7 +265,7 @@ trait Graph {
         (1 to rules("EDGECOLUMNS").toInt - 3)
           .map(x => x.toString)).toList
       case x => x.split(Option(rules("DELIMITER")).getOrElse(","))
-        .map(_.trim).toList
+        .map(_.trim.toUpperCase).toList
     }
     val tail = edges
     tail.map(nestedEdges).flatMap(x => x)
@@ -280,7 +281,8 @@ trait Graph {
     val atts = graphAttributes.map(removeComments)
       .map(x => x.split(Option(rules("DELIMITER"))
           .getOrElse(",")).map(_.trim))
-    val hd = if (atts.hasNext) atts.next() else Array[String]()
+    val hd = if (atts.hasNext) { atts.next()
+      .map(_.toUpperCase)} else { Array[String]() }
     if (atts.map(x => hd.zip(x).toMap).hasNext) {
       atts.map(x => hd.zip(x).toMap).next()
     } else { Map[String, String]()}
