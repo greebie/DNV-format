@@ -55,9 +55,11 @@ class GraphTest extends FunSuite with BeforeAndAfter {
     val node = graph.getNodeByIdentifier("Bob Bobblewot").getOrElse(Node())
     val node2 = graph.getNodeById(0).getOrElse(Node(7, "Not Bob",
       Map[String, String]()))
+    val node3 = graph.getNodeByIdentifier("ZongoLongon")
     assert(node.nid == 0)
     assert(node == node2)
     assert(node.label == "Bob Bobblewot")
+    assert(node3 == None)
   }
 
   test("Get rules for parsing from file") {
@@ -156,9 +158,9 @@ class GraphTest extends FunSuite with BeforeAndAfter {
   }
 
   test("Get All Nodes") {
-    val nodes = graph.nodes.take(5).toList
-    assert(nodes.map(x => x.nid) == List(0, 1, 2, 3, 4))
+    val nodes = graph.nodes.toList
+    assert(nodes.map(x => x.nid) == List(0, 1, 2, 3, 4, 5, 6, 7, 8))
     assert(nodes.map(x => x.label) == List("Bob Bobblewot",
-      "Sandy Poland", "Anderson Li", "4", "8"))
+      "Sandy Poland", "Anderson Li", "4", "8", "George", "9", "10", "6"))
   }
 }
