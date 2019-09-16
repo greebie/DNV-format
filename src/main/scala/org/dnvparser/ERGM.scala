@@ -28,7 +28,8 @@
 
 package org.dnvparser
 
-import breeze.linalg.{DenseMatrix, sum, trace, diag}
+import breeze.linalg.{DenseMatrix, sum, trace, diag, *, argsort}
+import breeze.linalg.support.CanSlice
 
 trait ERGM {
   val empty: DenseMatrix[Double]
@@ -57,7 +58,7 @@ trait ERGM {
     DenseMatrix.rand(network.rows, network.cols)
   }
 
-  def makeRandom() = {
+  def makeRandom(): DenseMatrix[Double] = {
     val prob = modelEdges()
     val rand = randomNetwork.map(x => if (x >= prob) {0.0} else {1.0})
     rand *:* diagonalMatrix()
@@ -68,8 +69,13 @@ trait ERGM {
     DenseMatrix.tabulate(x, x){case (i, j) => if (i == j) {0.0} else {1.0}}
   }
 
-  def simulate() = {
+  def simulateInDegreeDist(repeats: Int = 1000) = {
     val prob = modelEdges()
+    (0 to repeats)
+      .map(x => makeRandom()(*, ::).map(x => sum(x)).toArray)
+      .toList
+      .flatten
+      .groupBy(identity).mapValues(_.size)
   }
  }
 
