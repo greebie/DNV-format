@@ -26,7 +26,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- package org.dmvparser
+ package org.dnvparser
 
  import breeze.linalg.{DenseVector, DenseMatrix}
  import breeze.linalg.{eig, min, max}

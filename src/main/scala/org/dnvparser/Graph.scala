@@ -26,7 +26,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.dmvparser
+package org.dnvparser
 
 import scala.io.Source
 import scala.collection
@@ -40,6 +40,7 @@ trait Graph {
   val rules: Map[String, String] = getRules() // config options
   def attributes: Map[String, String] = getAttributes()
   var directed: Boolean = false
+  var weighted: Boolean = false
   val firstNodes: Vector[Node] = getNodes()
   val firstEdges: Vector[Edge] = getEdges()
   val nodes: Vector[Node] = getAllNodes()

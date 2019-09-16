@@ -26,15 +26,59 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+package org.dnvparser
 
-package org
+import breeze.linalg.{DenseMatrix, sum, trace, diag}
 
-import breeze.linalg.{DenseVector, DenseMatrix}
+trait ERGM {
+  val empty: DenseMatrix[Double]
+  val form: Formula
+  val network: DenseMatrix[Double] = form.network
+  var simple = true
+  var weighted = false
+  var directed = true
 
-package object dnvparser {
-  case class Node(nid: Long = -1, label: String = "-1",
-    attributes: Map[String, String] = Map[String, String]())
-  case class Edge(efrom: Long, eto: Long, attributes: Map[String, String])
-  case class Formula (network: DenseMatrix[Double], constant: String,
-    param: Map[String, Any])
+  /** Converts network to an unweighted network **/
+  def unweighted(): DenseMatrix[Double] = {
+    (network /:/ network).map(x => if (x.isNaN()) 0.0 else x)
+  }
+
+  /** Estimates the probability of an edge in the network (equal to density) **/
+  def modelEdges() = {
+    val net = if (weighted) { network } else { unweighted() }
+    val pot = if (directed) { net.cols * (net.cols - 1) }
+      else { (net.cols * (net.cols -1)) / 2 }
+    val simp = if (simple) {(sum(net) - trace(net))/ pot}
+      else {sum(net)/pot}
+    simp
+  }
+
+  def randomNetwork() = {
+    DenseMatrix.rand(network.rows, network.cols)
+  }
+
+  def makeRandom() = {
+    val prob = modelEdges()
+    val rand = randomNetwork.map(x => if (x >= prob) {0.0} else {1.0})
+    rand *:* diagonalMatrix()
+  }
+
+  def diagonalMatrix() = {
+    val x = empty.cols
+    DenseMatrix.tabulate(x, x){case (i, j) => if (i == j) {0.0} else {1.0}}
+  }
+
+  def simulate() = {
+    val prob = modelEdges()
+  }
+ }
+
+class ERGMImpl (val form: Formula) extends ERGM {
+  val empty = DenseMatrix.zeros[Double](form.network.cols, form.network.rows)
+}
+
+object ERGM {
+  def apply(form: Formula) = {
+    new ERGMImpl(form)
+  }
 }

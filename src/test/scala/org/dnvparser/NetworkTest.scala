@@ -26,7 +26,7 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.dmvparser
+package org.dnvparser
 
 import scala.io.Source
 import org.scalatest.FunSuite
@@ -57,7 +57,8 @@ class NetworkTest extends FunSuite with BeforeAndAfter {
     assert(network.inNeighbors(nodeIdent2).map(_.nid) == Vector())
     assert(network.neighbors(nodeIdent2).map(_.nid) == Vector(4, 6, 7))
     network.directed = true
-    assert(network.neighbors(nodeIdent).map(_.nid) == Vector(1, 2, 0, 0, 1, 2, 3))
+    assert(network.neighbors(nodeIdent).map(_.nid) == Vector(1, 2, 0,
+      0, 1, 2, 3))
   }
 
   test ("Get the nodeset") {
@@ -94,7 +95,7 @@ class NetworkTest extends FunSuite with BeforeAndAfter {
 
   test("Eigenvector Degree") {
     val eig = network.normalizeValues(network.eigenVectorCentrality())
-    assert(eig.map(x => "%.2f".format(x).toDouble).t == DenseMatrix(Array(0.0, 0.24,
-      0.47, 0.38, 0.12, 0.81, 0.56, 0.56, 1.0)))
+    assert(eig.map(x => "%.2f".format(x).toDouble).t == DenseMatrix(Array(0.0,
+      0.24, 0.47, 0.38, 0.12, 0.81, 0.56, 0.56, 1.0)))
   }
 }
