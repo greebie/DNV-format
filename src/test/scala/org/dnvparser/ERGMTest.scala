@@ -116,6 +116,6 @@ class ERGMTest extends FunSuite with BeforeAndAfter with Matchers {
     val expected = List(DenseVector(0, 1, 1))
     erg.simulateInDegreeDist()(2) should equal (1300 +- 75)
     erg.simulateInDegreeDist()(1) should equal (1300 +- 75)
-    erg.simulateInDegreeDist()(0) should equal (300 +- 30)
+    erg.simulateInDegreeDist()(0) should equal (300 +- 75)
   }
 }
