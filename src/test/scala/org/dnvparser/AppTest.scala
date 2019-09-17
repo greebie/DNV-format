@@ -71,6 +71,19 @@ class AppTest extends AsyncFunSuite with BeforeAndAfter {
     assert(test == expected)
   }
 
+  test("Check on null param") {
+    val invalid = App.main(Array(null, null))
+    val expected = Vector(
+      "((0,Bob Bobblewot),0.0)",
+      "((1,Sandy Poland),0.24124095066299805)",
+      "((2,Anderson Li),0.4749997675376122)",
+      "((3,4),0.38224854206815667)",
+      "((4,8),0.11675351812220724)"
+    )
+    val test = Source.fromFile(output).getLines.take(5).toVector
+    assert(test == expected)
+  }
+
 
 
 
