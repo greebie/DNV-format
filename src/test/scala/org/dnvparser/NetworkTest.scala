@@ -50,6 +50,9 @@ class NetworkTest extends FunSuite with BeforeAndAfter {
   test ("Get neighbours of Node") {
     val nodeIdent: String = "Bob Bobblewot"
     val nodeIdent2: String = "George"
+    val nodeIdent3: String = "Fake"
+    assert(network.outNeighbors(nodeIdent3) == Vector())
+    assert(network.inNeighbors(nodeIdent3) == Vector())
     assert(network.outNeighbors(nodeIdent).map(_.nid) == Vector(1, 2, 0))
     assert(network.inNeighbors(nodeIdent).map(_.nid) == Vector(0, 1, 2, 3))
     assert(network.neighbors(nodeIdent).map(_.nid) == Vector(1, 2, 0, 3))
