@@ -26,9 +26,8 @@
  * OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.dmvparser
+package org.dnvparser
 
-import scala.io.Source
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.junit.runner.RunWith
@@ -49,9 +48,17 @@ class GraphTest extends FunSuite with BeforeAndAfter {
     val nodes = graph.maxNodeId(graph.nodes)
     val edges = graph.maxEdgeId(graph.edges)
     assert(nodes.toInt == 8)
-    val newNode = Map("ID" -> "ID", "LABEL" -> "LABEL",
-      "DESCRIPTION" -> "DESCRIPTION", "AGE" -> "33")
-    assert(graph.addNode(newNode).map(_.nid.toInt).take(3) == Vector(0, 1, 2))
+  }
+
+  test("Get a Node by Id") {
+    val node = graph.getNodeByIdentifier("Bob Bobblewot").getOrElse(Node())
+    val node2 = graph.getNodeById(0).getOrElse(Node(7, "Not Bob",
+      Map[String, String]()))
+    val node3 = graph.getNodeByIdentifier("ZongoLongon")
+    assert(node.nid == 0)
+    assert(node == node2)
+    assert(node.label == "Bob Bobblewot")
+    assert(node3 == None)
   }
 
   test("Get rules for parsing from file") {
@@ -109,10 +116,14 @@ class GraphTest extends FunSuite with BeforeAndAfter {
   }
 
   test ("Get id") {
-    val str = graph.getId("Bob Bobblewot")
-    val str2 = graph.getId("Robert", Some("PSEUDO"))
-    assert(str == Some("0"))
-    assert(str2 == Some("0"))
+    val id = graph.getId("Bob Bobblewot")
+    val id2 = graph.getId("Robert", Some("PSEUDO"))
+    val id3 = graph.getId("George")
+    val id4 = graph.getId("George", all_nodes=true)
+    assert(id == Some(0))
+    assert(id2 == Some(0))
+    assert(id3 == None)
+    assert(id4 == Some(5))
   }
 
   test ("Nested edges") {
@@ -125,8 +136,8 @@ class GraphTest extends FunSuite with BeforeAndAfter {
   }
 
   test("Get Attributes") {
-    val expected = Map( "name" -> "Example Graph",
-      "description" -> "An Example Graph")
+    val expected = Map( "NAME" -> "Example Graph",
+      "DESCRIPTION" -> "An Example Graph")
     assert(graph.attributes == expected)
     assert(graph2.attributes == Map[String, String]())
   }
@@ -137,18 +148,18 @@ class GraphTest extends FunSuite with BeforeAndAfter {
     val edges1 = graph.edges.take(3).map(x => x.efrom)
     val edges2 = graph.edges.take(3).map(x => x.attributes)
     val edges3 = graph2.edges.take(3).map(x => x.attributes)
-    assert(edges == Vector("1", "0", "1"))
-    assert(edges1 == Vector("2", "2", "1"))
+    assert(edges == Vector(1, 2, 0))
+    assert(edges1 == Vector(0, 0, 0))
     assert(edges2.map(x => x("WEIGHT")) == Vector("1", "1", "1"))
     assert(edges2.map(x => x("SENTIMENT")) == Vector("0.123", "-0.5", "0.999"))
-    assert(edges3(0) == Map("TO" -> "1", "FROM" -> "2",
+    assert(edges3(0) == Map("FROM" -> "1", "TO" -> "2",
       "WEIGHT" -> "1"))
   }
 
   test("Get All Nodes") {
-    val nodes = graph.nodes.take(5).toList
-    assert(nodes.map(x => x.nid) == List("0", "1", "2", "3", "4"))
+    val nodes = graph.nodes.toList
+    assert(nodes.map(x => x.nid) == List(0, 1, 2, 3, 4, 5, 6, 7, 8))
     assert(nodes.map(x => x.label) == List("Bob Bobblewot",
-      "Sandy Poland", "Anderson Li", "4", "7"))
+      "Sandy Poland", "Anderson Li", "4", "8", "George", "9", "10", "6"))
   }
 }
