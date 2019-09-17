@@ -85,9 +85,9 @@ class ERGMTest extends FunSuite with BeforeAndAfter with Matchers {
     val expected2 = 0.67
     val expected3 = 3.0
     val expected4 = 5.0
-    erg.modelEdges() should equal (expected2 +- 0.02)
+    erg.modelEdges() should equal (expected2 +- 0.05)
     erg.weighted = true
-    erg.modelEdges() should equal (expected3 +- 0.02)
+    erg.modelEdges() should equal (expected3 +- 0.05)
     erg.simple = false
     assert (erg.modelEdges() == expected4)
     erg.weighted = false
