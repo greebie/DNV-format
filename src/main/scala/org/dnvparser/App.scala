@@ -9,8 +9,12 @@ import scala.io.Source
  * @author ryan.deschamps
  */
 object App {
-  def main(args: Array[String]) = {
-    val writer = new PrintWriter(new File("/Users/ryandeschamps/output"))
+  def main(args: Array[String]): Unit = {
+    val path = getClass.getResource("").getPath
+    val writer = Option(args(1)) match {
+      case Some(x) => new PrintWriter(new File(x))
+      case None => new PrintWriter(new File(path + "/output"))
+    }
     val file = Option(args(0)) match {
       case Some(x) => x
       case None => "/Users/ryandeschamps/edge_list" }

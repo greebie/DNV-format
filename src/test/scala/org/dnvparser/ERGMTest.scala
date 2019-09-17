@@ -28,7 +28,6 @@
 
 package org.dnvparser
 
-import scala.io.Source
 import org.scalatest.{FunSuite, BeforeAndAfter, Matchers}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -114,8 +113,8 @@ class ERGMTest extends FunSuite with BeforeAndAfter with Matchers {
 
   test ("Simulate Degree Dist") {
     val expected = List(DenseVector(0, 1, 1))
-    erg.simulateInDegreeDist()(2) should equal (1300 +- 75)
-    erg.simulateInDegreeDist()(1) should equal (1300 +- 75)
+    erg.simulateInDegreeDist()(2) should equal (1300 +- 150)
+    erg.simulateInDegreeDist()(1) should equal (1300 +- 150)
     erg.simulateInDegreeDist()(0) should equal (300 +- 75)
   }
 }

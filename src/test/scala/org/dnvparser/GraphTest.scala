@@ -28,7 +28,6 @@
 
 package org.dnvparser
 
-import scala.io.Source
 import org.scalatest.FunSuite
 import org.scalatest.BeforeAndAfter
 import org.junit.runner.RunWith
