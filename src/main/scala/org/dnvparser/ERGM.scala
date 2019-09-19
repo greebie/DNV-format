@@ -32,10 +32,10 @@ import breeze.linalg.{DenseMatrix, sum, trace, diag, *, argsort}
 import breeze.linalg.support.CanSlice
 
 trait ERGM {
-  val empty: DenseMatrix[Double]
   val form: Formula
-  val network: DenseMatrix[Double] = form.network
-  var simple = true
+  val diagonal = diagonalMatrix()
+  val network: DenseMatrix[Double] = form.network *:* diagonal
+  val empty: DenseMatrix[Double]
   var weighted = false
   var directed = true
 
@@ -49,9 +49,36 @@ trait ERGM {
     val net = if (weighted) { network } else { unweighted() }
     val pot = if (directed) { net.cols * (net.cols - 1) }
       else { (net.cols * (net.cols -1)) / 2 }
-    val simp = if (simple) {(sum(net) - trace(net))/ pot}
-      else {sum(net)/pot}
-    simp
+    sum(net)/pot
+  }
+
+  def modelMutualTies() = {
+    if (!directed) {
+      throw new ModelErrorException ("Mutual ties are only appropriate for " +
+        "directed graphs.")
+    }
+    var n = 0
+    var count = 0
+    while (n < network.cols) {
+      var k = n + 1
+      while (k < network.cols) {
+        if (network(n, k) >= 1 && network(k, n) >= 1) {
+          count += 1
+        }
+        k += 1
+      }
+      n += 1
+    }
+    count
+  }
+
+  def modelActorTraits = {
+    // model the probability of a tie given
+
+  }
+
+  def modelSample() = {
+
   }
 
   def randomNetwork() = {
@@ -65,7 +92,7 @@ trait ERGM {
   }
 
   def diagonalMatrix() = {
-    val x = empty.cols
+    val x = form.network.cols
     DenseMatrix.tabulate(x, x){case (i, j) => if (i == j) {0.0} else {1.0}}
   }
 

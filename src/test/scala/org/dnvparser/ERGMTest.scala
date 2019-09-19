@@ -67,7 +67,6 @@ class ERGMTest extends FunSuite with BeforeAndAfter with Matchers {
   before {
     network.directed = true
     erg.directed = true
-    erg.simple = true
     erg.weighted = false
   }
 
@@ -76,23 +75,21 @@ class ERGMTest extends FunSuite with BeforeAndAfter with Matchers {
   }
 
   test ("Creates unweighted from weighted network") {
-    val expected = DenseMatrix((1.0, 0.0, 1.0), (0.0, 1.0, 1.0), (1.0, 1.0, 0.0))
+    val expected = DenseMatrix((0.0, 0.0, 1.0), (0.0, 0.0, 1.0), (1.0, 1.0, 0.0))
     assert(erg.unweighted() == expected)
   }
 
   test ("Edge probability is equal to graph density") {
-    val expected = 2.0
+    val expected = 1.3
     val expected2 = 0.67
     val expected3 = 3.0
     val expected4 = 5.0
     erg.modelEdges() should equal (expected2 +- 0.05)
     erg.weighted = true
     erg.modelEdges() should equal (expected3 +- 0.05)
-    erg.simple = false
-    assert (erg.modelEdges() == expected4)
     erg.weighted = false
     erg.directed = false
-    assert (erg.modelEdges() == expected)
+    erg.modelEdges() should equal (expected +- 0.05)
   }
 
   test ("Make rand") {
@@ -104,6 +101,14 @@ class ERGMTest extends FunSuite with BeforeAndAfter with Matchers {
     }).toList) / 1000
     item should equal (0.67 +- 0.02)
     item2 should equal (0.21 +- 0.05)
+  }
+
+  test ("Count mutual edges in graph") {
+    val item = erg.modelMutualTies()
+    val item2 = ergm.modelMutualTies()
+    val expected = 2
+    assert(item == expected)
+    assert(item2 == expected)
   }
 
   test ("Diagonal") {

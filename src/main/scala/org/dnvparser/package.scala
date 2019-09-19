@@ -32,6 +32,7 @@ package org
 import breeze.linalg.{DenseVector, DenseMatrix}
 
 package object dnvparser {
+  class ModelErrorException(s: String) extends Exception(s) {}
   case class Node(nid: Long = -1, label: String = "-1",
     attributes: Map[String, String] = Map[String, String]())
   case class Edge(efrom: Long, eto: Long, attributes: Map[String, String])
