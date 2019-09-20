@@ -109,6 +109,8 @@ class ERGMTest extends FunSuite with BeforeAndAfter with Matchers {
     val expected = 2
     assert(item == expected)
     assert(item2 == expected)
+    erg.directed = false
+    assertThrows[ModelErrorException](erg.modelMutualTies())
   }
 
   test ("Diagonal") {
