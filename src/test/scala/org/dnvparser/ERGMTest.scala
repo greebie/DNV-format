@@ -40,11 +40,12 @@ class ERGMTest extends FunSuite with BeforeAndAfter with Matchers {
   val network = Network(file)
   val graph2 = Network(file2)
   val mat = network.adjacencyMatrix()
-  val formula = Formula(mat, "edges", Map[String, Any]())
+  val formula = Formula(mat, "edges", Map[String, Any](),
+    network.nodes)
   val ergm = ERGM(formula)
   val matr = DenseMatrix((1.0, 0.0, 3.0), (0.0, 11.0, 12.0),
     (1.0, 2.0, 0.0))
-  val erg = ERGM(Formula(matr, "edges", Map[String, Any]()))
+  val erg = ERGM(Formula(matr, "edges", Map[String, Any](), Vector[Node]()))
 
   def time[R](block: => R): R = {
     val t0 = System.nanoTime()
@@ -104,13 +105,13 @@ class ERGMTest extends FunSuite with BeforeAndAfter with Matchers {
   }
 
   test ("Count mutual edges in graph") {
-    val item = erg.modelMutualTies()
-    val item2 = ergm.modelMutualTies()
+    val item = erg.mutualTies()
+    val item2 = ergm.mutualTies()
     val expected = 2
     assert(item == expected)
     assert(item2 == expected)
     erg.directed = false
-    assertThrows[ModelErrorException](erg.modelMutualTies())
+    assertThrows[ModelErrorException](erg.mutualTies())
   }
 
   test ("Diagonal") {
@@ -123,5 +124,16 @@ class ERGMTest extends FunSuite with BeforeAndAfter with Matchers {
     erg.simulateInDegreeDist()(2) should equal (1300 +- 150)
     erg.simulateInDegreeDist()(1) should equal (1300 +- 150)
     erg.simulateInDegreeDist()(0) should equal (300 +- 75)
+  }
+
+  test ("Model actor traits") {
+    val expected = ergm.modelActorTraits((x) =>
+      Option(x.attributes("AGE")) match {
+        case Some("") => false
+        case None => false
+        case Some(x) => x.toInt <= "24".toInt })
+    expected("with") should equal (0.066667 +- 0.0006)
+    expected("in") should equal (0.4666 +- 0.002)
+    expected("out") should equal (0.1333 +- 0.001)
   }
 }

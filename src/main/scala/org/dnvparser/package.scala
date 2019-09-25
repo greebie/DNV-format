@@ -37,5 +37,5 @@ package object dnvparser {
     attributes: Map[String, String] = Map[String, String]())
   case class Edge(efrom: Long, eto: Long, attributes: Map[String, String])
   case class Formula (network: DenseMatrix[Double], constant: String,
-    param: Map[String, Any])
+    param: Map[String, Any], atts: Vector[Node])
 }

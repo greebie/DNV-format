@@ -40,7 +40,7 @@
    }
 
    def outNeighbors (nodeIdent: String): Vector[Node] = {
-     edges.filter(x => x.efrom == getId(nodeIdent, all_nodes=true).getOrElse(-1))
+     edges.filter(x => x.efrom == getIdAll(nodeIdent).getOrElse(-1))
        .map(x => getNodeById(x.eto) match {
          case Some(node) => node
          case None => Node()
@@ -48,7 +48,7 @@
    }
 
    def inNeighbors(nodeIdent: String): Vector[Node] = {
-     edges.filter(x => x.eto == getId(nodeIdent, all_nodes=true).getOrElse(-1))
+     edges.filter(x => x.eto == getIdAll(nodeIdent).getOrElse(-1))
        .map(x => getNodeById(x.efrom) match {
          case Some(node) => node
          case None => Node()

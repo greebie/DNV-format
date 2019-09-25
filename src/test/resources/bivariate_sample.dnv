@@ -1,0 +1,36 @@
+>DELIMITER=,
+>BIVARIATE=2
+>COMMENT=#
+>NODECOLUMNS=4
+>EDGECOLUMNS=4
+
+>GRAPH
+name, description
+Example Bivariate Graph, An Example BivariateGraph
+
+# Nodes
+
+#Columns
+>NODES
+ID, LABEL, DESCRIPTION
+1, Canada, Canadian Nation
+2, China, Chinese Nation
+3, India, Indian Nation
+4, US, US Nation
+5, Mexico, Mexico Nation
+
+#Rows
+>NODES
+ID, LABEL, DESCRIPTION
+1, Asian, Asian Countries
+2, North America, North American Countries
+3, Superpowers, Countries that are Superpowers
+4, Rice, Countries where rice is a major part of diet.
+
+>EDGES
+FROM, TO, WEIGHT
+1, 2, 1
+2, (1, 3, 4), 1
+3, (1, 4), 1
+4, (2, 3), 1
+5, (2, 4), 1

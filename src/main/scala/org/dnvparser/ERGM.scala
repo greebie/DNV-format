@@ -28,11 +28,13 @@
 
 package org.dnvparser
 
-import breeze.linalg.{DenseMatrix, sum, trace, diag, *, argsort}
+import breeze.linalg.{DenseMatrix, sum, trace, diag, *, argsort,
+  lowerTriangular, upperTriangular}
 import breeze.linalg.support.CanSlice
 
 trait ERGM {
   val form: Formula
+  val atts: Vector[Node] = form.atts
   val diagonal = diagonalMatrix()
   val network: DenseMatrix[Double] = form.network *:* diagonal
   val empty: DenseMatrix[Double]
@@ -52,17 +54,17 @@ trait ERGM {
     sum(net)/pot
   }
 
-  def modelMutualTies() = {
+  def mutualTies() = {
     if (!directed) {
       throw new ModelErrorException ("Mutual ties are only appropriate for " +
         "directed graphs.")
     }
     var n = 0
     var count = 0
-    while (n < network.cols) {
+    while (n < unweighted().cols) {
       var k = n + 1
-      while (k < network.cols) {
-        if (network(n, k) >= 1 && network(k, n) >= 1) {
+      while (k < unweighted().cols) {
+        if (unweighted()(n, k) >= 1 && unweighted()(k, n) >= 1) {
           count += 1
         }
         k += 1
@@ -72,9 +74,20 @@ trait ERGM {
     count
   }
 
-  def modelActorTraits = {
-    // model the probability of a tie given
-
+  //* Model for an attribute att has value expect *//
+  def modelActorTraits(att: Node => Boolean) = {
+    val attTrue = atts.filter(att).map(x => x.nid.toInt)
+    val attFalse = atts.filterNot(att).map(x => x.nid.toInt)
+    val homophily = attTrue.flatMap(x => attTrue.map( y => (x, y)))
+    val heterophily = attTrue.flatMap(x => attFalse.map( y => (x, y)))
+    val in = sum(heterophily.map({case (x: Int, y: Int) => network(x, y)}))
+    val out = sum(heterophily.map({case (x: Int, y: Int) => network(y, x)}))
+    val homo = sum(homophily.map({case (x: Int, y: Int) => network(x, y)}))
+    val nw = sum(network)
+    if (nw == 0.0) {
+      throw new ModelErrorException ("Cannot model actor" +
+        "traits on an empty network") }
+    Map("with" -> homo/nw, "in" -> in/nw, "out" -> out/nw)
   }
 
   def modelSample() = {

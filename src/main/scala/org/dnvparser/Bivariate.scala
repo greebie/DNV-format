@@ -28,61 +28,29 @@
 
 package org.dnvparser
 
-import scala.io.Source
-import org.apache.commons.io.FileUtils
-import org.scalatest.{AsyncFunSuite, BeforeAndAfter}
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import breeze.linalg.{DenseMatrix}
-import scala.util.Try
-import java.io.File
-import java.nio.file.{Files, Paths}
+import breeze.linalg.{DenseMatrix, sum, trace, diag, *, argsort,
+  lowerTriangular, upperTriangular}
+import breeze.linalg.support.CanSlice
 
-
-@RunWith(classOf[JUnitRunner])
-class AppTest extends AsyncFunSuite with BeforeAndAfter {
-  val file = getClass.getResource("/sample_edge_list.dnv").getPath
-  val output = getClass.getResource("").getPath + "/output"
-  val start = App.main(Array(file, output))
-
-  before {
-
+trait Bivariate extends Graph {
+  override val nodes: Vector[Node] = getAllNodes()
+  override val edges: Vector[Edge] = getAllEdges()
+  val columns: Vector[Node] = getColumnNodes()
+  val rows: Vector[Node] = getRowNodes()
+  override def getAllNodes(): Vector[Node] = {
+    Vector[Node]()
   }
-
-  after {
-    if (Files.exists(Paths.get(output))) {
-         Try (FileUtils.deleteDirectory(new File(output)))
-       }
+  override def getAllEdges(): Vector[Edge] = {
+    Vector[Edge]()
   }
-
-  test("Add file name to main") {
-    assert(start.getClass.toString() == "void")
+  def getColumnNodes(): Vector[Node] = {
+    Vector[Node]()
   }
-
-  test("Check output file details") {
-    val test = Source.fromFile(output).getLines.take(5).toVector
-    val expected = Vector(
-      "((0,Bob Bobblewot),0.0)",
-      "((1,Sandy Poland),0.2514859146010396)",
-      "((2,Anderson Li),0.6180756337795154)",
-      "((3,4),0.5557103647670811)",
-      "((4,6),0.7618384150998224)")
-    assert(test == expected)
+  def getRowNodes(): Vector[Node] = {
+    Vector[Node]()
   }
+}
 
-  test("Check on null param") {
-    val invalid = App.main(Array(null, null))
-    val expected = Vector(
-      "((0,Bob Bobblewot),0.0)",
-      "((1,Sandy Poland),0.2514859146010396)",
-      "((2,Anderson Li),0.6180756337795154)",
-      "((3,4),0.5557103647670811)",
-      "((4,6),0.7618384150998224)")
-    val test = Source.fromFile(output).getLines.take(5).toVector
-    assert(test == expected)
-  }
-
-
-
+class BivariateImpl (val path: String) extends Bivariate  {
 
 }
