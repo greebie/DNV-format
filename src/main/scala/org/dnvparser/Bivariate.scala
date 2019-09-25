@@ -32,15 +32,13 @@ import breeze.linalg.{DenseMatrix, sum, trace, diag, *, argsort,
   lowerTriangular, upperTriangular}
 import breeze.linalg.support.CanSlice
 
-trait Bivariate extends Graph {
-  override val nodes: Vector[Node] = getAllNodes()
-  override val edges: Vector[Edge] = getAllEdges()
+trait Bivariate extends GraphReader {
+  //override val nodes: Vector[Node] = getNodes()
+  //override val edges: Vector[Edge] = getEdges()
   val columns: Vector[Node] = getColumnNodes()
   val rows: Vector[Node] = getRowNodes()
-  override def getAllNodes(): Vector[Node] = {
-    Vector[Node]()
-  }
-  override def getAllEdges(): Vector[Edge] = {
+
+  override def getEdges(): Vector[Edge] = {
     Vector[Edge]()
   }
   def getColumnNodes(): Vector[Node] = {
@@ -48,6 +46,9 @@ trait Bivariate extends Graph {
   }
   def getRowNodes(): Vector[Node] = {
     Vector[Node]()
+  }
+  override def getNodes(): Vector[Node] = {
+    getBivariateNodes()
   }
 }
 

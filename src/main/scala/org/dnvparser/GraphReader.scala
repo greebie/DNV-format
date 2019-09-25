@@ -35,6 +35,7 @@ import scala.math.max
 
 trait GraphReader {
   def path: String // path to file
+  def source = getSource(path)
   val logger = Logger(LoggerFactory.getLogger("DNVParser Graph Functions"))
 
   //* Default values */
@@ -43,6 +44,8 @@ trait GraphReader {
   val GraphStart: String = ">GRAPH"
   val NodeStart: String = ">NODES"
   val EdgeStart: String = ">EDGES"
+  val BivariateKey: String = "BIVARIATE"
+  val DirectedKey: String = "DIRECTED"
   val DefaultDelimiterKey: String = "DELIMITER"
   val DefaultDelimiter: String = ","
   val DefaultCommentChar: String = "#"
@@ -55,20 +58,17 @@ trait GraphReader {
 
   val rules: Map[String, String] = getRules()
   val attributes: Map[String, String] = getAttributes()
+  val Delimiter = Option(rules(DefaultDelimiterKey)).getOrElse(DefaultDelimiter)
+  val Bivariate = Option(checkBooleanRule(BivariateKey)).getOrElse(false)
+  val Comment = Option(rules(DefaultCommentKey)).getOrElse(DefaultCommentChar)
 
   //* The nodes from the file, not including those inferred from edges */
-  val nodesReader = getNodes()
+  val nodesReader = if (Bivariate) {getBivariateNodes()} else {getNodes()}
   //* The edges from the file, not including those inferred from nodes */
-  val edgesReader = getEdges()
+  val edgesReader = if (Bivariate) {getBivariateEdges()} else {getEdges()}
 
   //* user changeable values */
-  private var _directed: Boolean = Option(rules("DIRECTED")) match {
-    case Some(x: String) => x.toLowerCase match {
-      case "1" | "true" | "y" | "yes" => true
-      case _ => false
-    }
-    case None => false
-  }
+  private var _directed: Boolean = checkBooleanRule(DirectedKey)
   private var _weighted: Boolean = false
 
   def directed: Boolean = _directed
@@ -77,9 +77,21 @@ trait GraphReader {
   def directed_= (value: Boolean):Unit = _directed = value
   def weighted_= (value: Boolean):Unit = _weighted = value
 
+  private def checkBooleanRule(value: String) = {
+    if (rules.contains(value)) {
+      Option(rules(value)) match {
+        case Some(x: String) => x.toLowerCase match {
+          case "1" | "true" | "y" | "yes" => true
+          case _ => false
+        }
+        case None => false
+      }
+    } else { false }
+
+  }
+
   //* Gets the rules for the configuration from the source
   private def getRules(): Map[String, String] = {
-    val source: Iterator[String] = Source.fromFile(path).getLines
     source.filter( line => line.headOption == Some(Command))
       .flatMap( line => {
         Option(line.slice(1, line.length).split(SplitChar)) match {
@@ -90,7 +102,6 @@ trait GraphReader {
   }
 
   private def getAttributes(): Map[String, String] = {
-    val source = Source.fromFile(path).getLines
     val graphAttributes = source.dropWhile(x => x != GraphStart)
       .takeWhile(x => x != NodeStart)
     if (graphAttributes.hasNext) graphAttributes.next()
@@ -104,8 +115,11 @@ trait GraphReader {
     } else { Map[String, String]()}
   }
 
+  private def getSource(path: String) = {
+    Source.fromFile(path).getLines
+  }
+
   def getEdges(): Vector[Edge] = {
-    val source = Source.fromFile(path).getLines
     val edgeSet = source.dropWhile(x => x != EdgeStart)
     edgeSet.next()
     val edges = edgeSet.map(removeComments)
@@ -123,34 +137,68 @@ trait GraphReader {
       .map(atts => Edge(-1, -1, atts)).toVector
   }
 
+  def collectNodesFromIterator(itt: Iterator[String]) = {
+    val regex = ("(.+) ([\\[\\(].+?[\\]\\)]" + Delimiter + ") (.+)").r
+    itt.map(removeComments)
+      .flatMap( x => x match {
+        case "" => None
+        case regex(begin, parenth, end) => Some(
+          begin.split(Delimiter).map(_.trim) ++
+          Array(parenth.toString.substring(0, parenth.toString.length -1)
+          .replaceAll("[\\(\\)\\[\\]\\{\\}]", "").trim) ++
+          end.split(Delimiter).map(_.trim))
+        case _ => Some(x.split(Delimiter).map(_.trim))
+      }
+    )
+  }
+
   /** Gets the nodes from the source file. **/
   def getNodes(): Vector[Node] = {
-    val delimiter = Option(rules("DELIMITER")).getOrElse(",")
-    val regex = ("(.+) ([\\[\\(].+?[\\]\\)]" + delimiter + ") (.+)").r
-    val source = Source.fromFile(path).getLines
     val nodeSet = source.dropWhile(x => x != ">NODES")
       .takeWhile(x => x != ">EDGES")
     nodeSet.next()
-    val nodes = nodeSet.map(removeComments)
-      .flatMap( x => x match {
-        case "" => None
-        case regex(begin, parenth, end) => Some(begin
-          .split(delimiter)
-          .map(_.trim) ++ Array(parenth.toString
-            .substring(0, parenth.toString.length -1)
-            .replaceAll("[\\(\\)\\[\\]\\{\\}]", "")
-            .trim) ++
-          end.split(delimiter).map(_.trim))
-        case _ => Some(x.split(Option(rules("DELIMITER"))
-          .getOrElse(","))
-          .map(_.trim))
-      })
+    val nodes = collectNodesFromIterator(nodeSet)
     val hd: Array[String] = nodes.take(1).toList.head.map(_.trim.toUpperCase)
     val tail = nodes
     tail.map((x: Array[String]) => hd.zip(x).toMap)
       .toVector
       .zipWithIndex
       .map({case (atts, id) => Node(id, atts("LABEL"), atts)})
+  }
+
+  def getBivariateNodes(): Vector[Node] = {
+    val regex = ("(.+) ([\\[\\(].+?[\\]\\)]" + Delimiter + ") (.+)").r
+    val source = Source.fromFile(path).getLines
+    val nodeSetA = source.dropWhile(x => x != ">NODES")
+      .takeWhile(x => x != ">NODES")
+    nodeSetA.next()
+    val nodesA = collectNodesFromIterator(nodeSetA)
+    val hdA: Array[String] = nodesA.take(1).toList.head
+      .map(_.trim.toUpperCase)
+    val colNodes = nodesA
+      .map((x: Array[String]) => hdA.zip(x).toMap)
+      .toVector
+      .zipWithIndex
+      .map({case (atts, id) => Node(id, atts("LABEL"),
+        atts + ("NODESET" -> "COL"))})
+    val nodeSetB = source.dropWhile(x => x != ">NODES")
+      .dropWhile(x => x != ">NODES")
+      .takeWhile(x => x != ">EDGES")
+    nodeSetB.next()
+    val nodesB = collectNodesFromIterator(nodeSetB)
+    val hdB: Array[String] = nodesB.take(1).toList.head
+      .map(_.trim.toUpperCase)
+    val rowNodes = nodesB
+      .map((x: Array[String]) => hdB.zip(x).toMap)
+      .toVector
+      .zipWithIndex
+      .map({case (atts, id) => Node(id, atts("LABEL"),
+        atts + ("NODESET" -> "ROW"))})
+    colNodes ++ rowNodes
+  }
+
+  def getBivariateEdges(): Vector[Edge] = {
+    Vector[Edge]()
   }
 
   //*
@@ -194,31 +242,30 @@ trait GraphReader {
 
   //* Detects tuple-like objects from str and splits them into Lists **/
   def nestedEdges(str: String): List[Vector[String]] = {
-    val delimiter = Option(rules("DELIMITER")).getOrElse(",")
     // matches "(1, 2, 3), (4, 5, 6), 7, 8, 9"
-    val regex1 = ("([\\[\\(].+?[\\]\\)]" + delimiter +
-      ") ([\\[\\(].+?[\\]\\)]" + delimiter + ") (.+)").r
+    val regex1 = ("([\\[\\(].+?[\\]\\)]" + Delimiter +
+      ") ([\\[\\(].+?[\\]\\)]" + Delimiter + ") (.+)").r
     // matches "(1, 2, 3), 4, 5, 6, 7, 8, 9"
-    val regex2 = ("([\\[\\(].+?[\\]\\)]" + delimiter + ") (>?[0-9a-zA-Z]+" +
-      delimiter + ") (.+)").r
+    val regex2 = ("([\\[\\(].+?[\\]\\)]" + Delimiter + ") (>?[0-9a-zA-Z]+" +
+      Delimiter + ") (.+)").r
     // matches "1, (2, 3, 4), 5, 6, 7, 8, 9"
-    val regex3 = ("(>?[0-9a-zA-Z]+" + delimiter + ") ([\\[\\(].+?[\\]\\)]" +
-      delimiter + ") (.+)").r
+    val regex3 = ("(>?[0-9a-zA-Z]+" + Delimiter + ") ([\\[\\(].+?[\\]\\)]" +
+      Delimiter + ") (.+)").r
     str match {
       case regex1(nodefrom, nodeto, rest) => {
         edgesFromEdgeList(nodefrom, nodeto).map({ case(x, y) =>
-          (Array(x, y) ++ rest.split(delimiter)).map(_.trim).toVector
+          (Array(x, y) ++ rest.split(Delimiter)).map(_.trim).toVector
         }) }
       case regex2(nodefrom, nodeto, rest) => {
         edgesFromEdgeList(nodefrom, nodeto).map({ case(x, y) =>
-          (Array(x, y) ++ rest.split(delimiter)).map(_.trim).toVector
+          (Array(x, y) ++ rest.split(Delimiter)).map(_.trim).toVector
         }) }
       case regex3(nodefrom, nodeto, rest) => {
         edgesFromEdgeList(nodefrom, nodeto).map({ case(x, y) =>
-          (Array(x, y) ++ rest.split(delimiter)).map(_.trim).toVector
+          (Array(x, y) ++ rest.split(Delimiter)).map(_.trim).toVector
         }) }
       case _ => {
-        List(str.split(delimiter).map(_.trim).toVector)
+        List(str.split(Delimiter).map(_.trim).toVector)
       }
     }
   }
@@ -242,8 +289,6 @@ trait GraphReader {
 
   /** Gets the node id corresponding to a String **/
   def getId(ident: String, alt: Option[String] = None): Option[Long] = {
-    val delimiter = Option(rules(DefaultDelimiterKey))
-      .getOrElse(DefaultDelimiter)
     if (nodesReader.map(x => x.attributes("ID")).contains(ident)) {
       Some(nodesReader.filter(x => x.attributes("ID") == ident)
         .map(x => x.nid).head)
