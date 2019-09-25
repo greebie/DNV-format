@@ -55,3 +55,9 @@ trait Bivariate extends GraphReader {
 class BivariateImpl (val path: String) extends Bivariate  {
 
 }
+
+object Bivariate {
+  def apply(path: String) = {
+    new BivariateImpl(path)
+  }
+}

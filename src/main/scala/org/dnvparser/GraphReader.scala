@@ -60,6 +60,8 @@ trait GraphReader {
   val attributes: Map[String, String] = getAttributes()
   val Delimiter = Option(rules(DefaultDelimiterKey)).getOrElse(DefaultDelimiter)
   val Bivariate = Option(checkBooleanRule(BivariateKey)).getOrElse(false)
+  val Variate = if (rules.contains(BivariateKey)) {
+    Option(rules(BivariateKey)).getOrElse(0) } else { 0 }
   val Comment = Option(rules(DefaultCommentKey)).getOrElse(DefaultCommentChar)
 
   //* The nodes from the file, not including those inferred from edges */
@@ -82,12 +84,12 @@ trait GraphReader {
       Option(rules(value)) match {
         case Some(x: String) => x.toLowerCase match {
           case "1" | "true" | "y" | "yes" => true
+          case y if (x == "BIVARIATE" && y.toInt > 1) => true
           case _ => false
         }
         case None => false
       }
     } else { false }
-
   }
 
   //* Gets the rules for the configuration from the source
@@ -168,10 +170,10 @@ trait GraphReader {
 
   def getBivariateNodes(): Vector[Node] = {
     val regex = ("(.+) ([\\[\\(].+?[\\]\\)]" + Delimiter + ") (.+)").r
-    val source = Source.fromFile(path).getLines
-    val nodeSetA = source.dropWhile(x => x != ">NODES")
-      .takeWhile(x => x != ">NODES")
-    nodeSetA.next()
+    val nodeSet = source.dropWhile(x => x != ">NODES")
+    nodeSet.next()
+    val nodeSetA = nodeSet.takeWhile(x => x != ">NODES")
+    val nodeSetB = nodeSet.takeWhile(x => x != ">EDGES")
     val nodesA = collectNodesFromIterator(nodeSetA)
     val hdA: Array[String] = nodesA.take(1).toList.head
       .map(_.trim.toUpperCase)
@@ -181,10 +183,6 @@ trait GraphReader {
       .zipWithIndex
       .map({case (atts, id) => Node(id, atts("LABEL"),
         atts + ("NODESET" -> "COL"))})
-    val nodeSetB = source.dropWhile(x => x != ">NODES")
-      .dropWhile(x => x != ">NODES")
-      .takeWhile(x => x != ">EDGES")
-    nodeSetB.next()
     val nodesB = collectNodesFromIterator(nodeSetB)
     val hdB: Array[String] = nodesB.take(1).toList.head
       .map(_.trim.toUpperCase)

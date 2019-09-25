@@ -75,7 +75,7 @@ class AppTest extends AsyncFunSuite with BeforeAndAfter with Matchers {
     val eigs = expected.map(x => {
       val eig = x.split(",")(2)
       eig.substring(0, eig.length -1).toDouble
-    })  
+    })
     val comparison = testEigs.zip(eigs).toVector
     comparison.foreach ({case (x: Double, y: Double) =>
       x  should equal (y +- 0.00001)
@@ -102,12 +102,8 @@ class AppTest extends AsyncFunSuite with BeforeAndAfter with Matchers {
     })
     val comparison = testEigs.zip(eigs).toVector
     comparison.foreach ({case (x: Double, y: Double) =>
-      x  should equal (y +- 0.00001)
+      x should equal (y +- 0.00001)
     })
     assert(test.map(x => x.split(",")(0)) == idents)
   }
-
-
-
-
 }
