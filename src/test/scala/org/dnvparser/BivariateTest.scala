@@ -45,9 +45,11 @@ class BivariateTest extends AsyncFunSuite with BeforeAndAfter with Matchers {
   val file = getClass.getResource("/bivariate_sample.dnv").getPath
   val bivariate = Bivariate(file)
 
-
   test ("Gets the bivariate file") {
-    val test = bivariate.getNodes()
+    val test = bivariate.nodesReader
+    val edgeTest = bivariate.edges
+    val cols = bivariate.columns
+    val rows = bivariate.rows
     val labelsCol = test.filter(x => x.attributes("NODESET") == "COL")
       .map(x => x.label)
     val labelsRow = test.filter(x => x.attributes("NODESET") == "ROW")
@@ -56,5 +58,9 @@ class BivariateTest extends AsyncFunSuite with BeforeAndAfter with Matchers {
         "US", "Mexico"))
     labelsRow should equal (Vector("Asian", "North America", "Superpowers",
       "Rice"))
+    rows.map(x => x.label) should equal (Vector("Asian", "North America",
+      "Superpowers", "Rice", "7"))
+    cols.map(x => x.label) should equal (Vector("Canada", "China", "India",
+        "US", "Mexico", "6"))
   }
 }

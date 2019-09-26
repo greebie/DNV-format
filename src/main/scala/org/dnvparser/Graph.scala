@@ -40,16 +40,6 @@ trait Graph extends GraphReader {
   val nodes: Vector[Node] = getAllNodes()
   val edges: Vector[Edge] = getAllEdges()
 
-  /** Get the maximum id value from nodes **/
-  def maxNodeId(vector: Vector[Node]): String = {
-     vector.map(_.nid.toLong).max.toString
-  }
-
-  def maxEdgeId(vector: Vector[Edge]): String = {
-    vector.map(n => max(n.eto.toLong, n.efrom.toLong))
-      .max.toString
-  }
-
   def getAllNodes(): Vector[Node] = {
     val nodes: Vector[Node] = nodesReader
     val hd: Iterable[String] = nodesReader.map(_.attributes.keySet).head

@@ -92,6 +92,16 @@ trait GraphReader {
     } else { false }
   }
 
+  /** Get the maximum id value from nodes **/
+  def maxNodeId(vector: Vector[Node]): String = {
+     vector.map(_.nid.toLong).max.toString
+  }
+
+  def maxEdgeId(vector: Vector[Edge]): String = {
+    vector.map(n => max(n.eto.toLong, n.efrom.toLong))
+      .max.toString
+  }
+
   //* Gets the rules for the configuration from the source
   private def getRules(): Map[String, String] = {
     source.filter( line => line.headOption == Some(Command))

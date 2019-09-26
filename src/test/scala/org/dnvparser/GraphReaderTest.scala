@@ -37,7 +37,6 @@ import org.scalatest.junit.JUnitRunner
 class GraphReaderTest extends FunSuite with BeforeAndAfter {
   val file = getClass.getResource("/sample_edge_list.dnv").getPath
   val file2 = getClass.getResource("/sample_edge_list2.dnv").getPath
-  println(file)
   val graphReader = new GraphReader {
     def path = file
   }
@@ -111,6 +110,5 @@ class GraphReaderTest extends FunSuite with BeforeAndAfter {
     assert(id3 == None)
     assert(id5 == Some(4))
     assert(id4 == None)
-
   }
 }
