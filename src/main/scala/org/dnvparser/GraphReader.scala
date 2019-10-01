@@ -84,7 +84,7 @@ trait GraphReader {
       Option(rules(value)) match {
         case Some(x: String) => x.toLowerCase match {
           case "1" | "true" | "y" | "yes" => true
-          case y if (x == "BIVARIATE" && y.toInt > 1) => true
+          case y if (x == "BIVARIATE" && y.toInt > 1) => false
           case _ => false
         }
         case None => false

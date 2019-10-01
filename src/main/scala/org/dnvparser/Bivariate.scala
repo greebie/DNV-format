@@ -28,9 +28,10 @@
 
 package org.dnvparser
 
-import breeze.linalg.{DenseMatrix, sum, trace, diag, *, argsort,
-  lowerTriangular, upperTriangular}
-import breeze.linalg.support.CanSlice
+import breeze.linalg.{DenseMatrix, DenseVector, *, sum, svd}
+import breeze.numerics.sqrt
+import breeze.plot._
+import java.awt.{Paint, Color}
 
 trait Bivariate extends GraphReader {
   val DimKey = "NODESET"
@@ -44,6 +45,49 @@ trait Bivariate extends GraphReader {
   val columns: Vector[Node] = getColumnNodes()
   val rows: Vector[Node] = getRowNodes()
   val edges: Vector[Edge] = getAllEdges()
+  private var _removeSingle: Boolean = true
+  def removeSingle = _removeSingle
+  def removeSingle_= (value: Boolean):Unit = _removeSingle = value
+  val startMatrix: BivariateMatrix = createMatrix()
+  // full case class with labels and abbrevs
+  def bivariateMatrix: BivariateMatrix = if (removeSingle) {removeSingles()} else {startMatrix}
+  def matrix: DenseMatrix[Double] = bivariateMatrix.matrix
+  def rowLabels = bivariateMatrix.rowAbbrev
+  def colLabels = bivariateMatrix.colAbbrev
+  def sumMatrix = DenseMatrix.zeros[Double](matrix.rows, matrix.cols) := sum(matrix)
+  // Number of observations.
+  def n = sum(matrix)
+  // Observed proportions.
+  def P = matrix /:/ sumMatrix
+  def massCols = sum(P(::, *))
+  def massRows = sum(P(*, ::))
+  // Expected proportions.
+  def Expected = {
+    val rows = massRows.map(x => {
+      DenseVector((0 to massCols.t.length -1).map(y => {
+        (massCols(y)*x)
+      }).toArray)
+    }).toArray
+    DenseMatrix(rows:_*)
+  }
+  def Residuals = P - Expected
+  // Indexed residuals.
+  def I = Residuals /:/ Expected
+  def ResidualsSS = Residuals.map(x => x * x) /:/ Expected
+  def Chi = sum(ResidualsSS)
+  // Standardized (normalized) residual.
+  def Z = I *:* sqrt(Expected)
+  val svd.SVD(u, s, v) = svd(Z)
+  def standCoordsRow = u(*, ::).map(x => x /:/ sqrt(massRows))
+  def standCoordsCol = v(*, ::).map(x => x /:/ sqrt(massCols.t))
+  def rowCoords = standCoordsRow
+  def colCoords = standCoordsCol
+  def dimensions = s /:/ sum(s)
+  def colProfile = matrix /:/ sum(massCols)
+  def rowProfile = matrix /:/ sum(massRows)
+  def avgColProfile = massRows /:/ n
+  def avgRowProfile = massCols /:/ n
+
 
   def getColumnNodes(): Vector[Node] = {
     nodes.filter(x => x.attributes(DimKey) == Cols)
@@ -99,7 +143,7 @@ trait Bivariate extends GraphReader {
   def getAllEdges(): Vector[Edge] = {
     edgesReader.map({ case Edge(efrom, eto, atts) =>
       val fromId: Long = getIdAll(columns, atts(ColumnHeader)).getOrElse(-1)
-      val toId: Long = getIdAll(rows, atts(ColumnHeader)).getOrElse(-1)
+      val toId: Long = getIdAll(rows, atts(RowHeader)).getOrElse(-1)
       Edge(fromId, toId,
         Map("FROM" -> getNodeById(fromId, columns)
           .getOrElse(Node(-1, "", Map())).label,
@@ -107,7 +151,7 @@ trait Bivariate extends GraphReader {
           .getOrElse(Node(-1, "", Map())).label) ++
           atts.drop(2))})
       .filter(x => x.eto != -1 || x.efrom != -1 || x.attributes(ColumnHeader) != "" ||
-        x.attributes(ColumnHeader) != "")
+        x.attributes(RowHeader) != "")
   }
 
   def getNodeById(nodeId: Long, nds: Vector[Node] = columns) = {
@@ -131,6 +175,137 @@ trait Bivariate extends GraphReader {
         case _ => None
       }
     }
+  }
+
+  def createMatrix() = {
+    val edgesRow = edges.map(_.eto)
+    val edgesCol = edges.map(_.efrom)
+    val rs = rows.filter(x => edgesRow.contains(x.nid))
+    val cls = columns.filter(x => edgesCol.contains(x.nid))
+    val items = rs.map({case Node(rid, rlabel, ratts) =>
+      val yes = edges.filter(x => x.eto == rid).map(_.efrom)
+      new DenseVector[Double](cls.map({case Node(cid, clabel, catts) =>
+        if (yes.contains(cid)) {1.0} else {0.0}
+      }).toArray)
+    }).toArray
+    val rowLabels = rows.map(_.label)
+    // TODO - if there's no "ABBREV" use "ID"
+    val rowAbbrev = rows.map(x => {
+      if (x.attributes.contains("ABBREV")) {
+        x.attributes("ABBREV")
+      } else if (x.attributes.contains("ABBREVIATION")) {
+        x.attributes("ABBREVIATION")
+      } else {
+        x.label
+      }
+    })
+    val colLabels = columns.map(_.label)
+    // TODO - if there's no "ABBREV" use "ID"
+    val colAbbrev = columns.map(x => {
+      if (x.attributes.contains("ABBREV")) {
+        x.attributes("ABBREV")
+      } else if (x.attributes.contains("ABBREVIATION")) {
+        x.attributes("ABBREVIATION")
+      } else {
+        x.label
+      }})
+   BivariateMatrix(rowLabels, rowAbbrev, colLabels, colAbbrev,
+     DenseMatrix(items:_*))
+  }
+
+  def removeSingles() = {
+    val matrix = startMatrix.matrix
+    val sliceCol = (0 to matrix.cols -1)
+      .filter(x => sum(matrix(::, x)) > 1).toSeq
+    val sliceRow = (0 to matrix.rows -1)
+      .filter(x => sum(matrix(x, ::)) >1).toSeq
+    val rowL = startMatrix.rowLabels.filter(x => sliceRow
+      .contains(startMatrix.rowLabels.indexOf(x)))
+    val colL = startMatrix.colLabels.filter(x => sliceCol
+      .contains(startMatrix.colLabels.indexOf(x)))
+    val rowA = startMatrix.rowAbbrev.filter(x => sliceRow
+      .contains(startMatrix.rowAbbrev.indexOf(x)))
+    val colA = startMatrix.colAbbrev.filter(x => sliceCol
+      .contains(startMatrix.colAbbrev.indexOf(x)))
+    BivariateMatrix(
+      rowL, rowA, colL, colA, matrix(sliceRow, sliceCol).toDenseMatrix)
+  }
+
+  def sizeItem(int: Int) = {
+    5.0
+  }
+
+  def plotCoords() = {
+    val whiteList = Vector[String]()
+    val blackList = Vector[String]("Self-regulation", "NATO", "Voluntary Assess",
+      "Conferences", "Procurement", "Protect Interests", "National Plan",
+      "SME funding", "Task Force", "Academy", "Innovation Cent", "Intl Collab")
+    val rLabels = Option(whiteList) match {
+      case None => rowLabels.map(x => {
+        if (blackList.contains(x)) {""} else {x}
+      })
+      case Some(y) if (y.isEmpty) => rowLabels.map(x => {
+        print("BLACKLIST HERE")
+        if (blackList.contains(x)) {""} else {x}
+      })
+      case Some(y) => rowLabels.map (x => {
+        if (whiteList.contains(x)) {x} else {""}
+      })
+    }
+    val f = Figure()
+    f.height = 2250
+    f.width = 2250
+    val p = f.subplot(0)
+    p += scatter(rowCoords(0, ::).t, rowCoords(1, ::).t,
+      (x) => 0.05, (y)=> Color.BLUE, labels=rLabels)
+    p += scatter(colCoords(0, ::).t, colCoords(1, ::).t, (x) => 0.2,
+      (y) => Color.RED, labels=colLabels)
+    p.title = "Correspondence Analysis of Cybersecurity Strategies by Country"
+    p.xlabel = "Dimension 1 = " +
+      (math.round(dimensions(0) * 10000) / 100).toString +
+      "% Explanatory power"
+    p.ylabel = "Dimension 2 = " +
+      (math.round(dimensions(1) * 10000) / 100).toString +
+      "% Explanatory power"
+
+    val p2 = f.subplot(2, 1, 1)
+    p2 += scatter(rowCoords(1, ::).t, rowCoords(2, ::).t, (x) => 0.05,
+      (y) => Color.BLUE, labels=rLabels)
+    p2 += scatter(colCoords(1, ::).t, colCoords(2, ::).t,
+      (x) => 0.2, (y) => Color.RED, labels=colLabels)
+    p2.title = "Correspondence Analysis of Cybersecurity Strategies by Country"
+    p2.xlabel = "Dimension 2 = " +
+      (math.round(dimensions(1) * 10000) / 100).toString +
+      "% Explanatory power"
+    p2.ylabel = "Dimension 3 = " +
+      (math.round(dimensions(2) * 10000) / 100).toString +
+      "% Explanatory power"
+
+    val p3 = f.subplot(2, 2, 2)
+    p3 += scatter(rowCoords(2, ::).t, rowCoords(3, ::).t, (x) => 0.05,
+      (y) => Color.BLUE, labels=rLabels)
+    p3 += scatter(colCoords(2, ::).t, colCoords(3, ::).t, (x) => 0.2,
+      (y) => Color.RED, labels=colLabels)
+    p3.title = "Correspondence Analysis of Cybersecurity Strategies by Country"
+    p3.xlabel = "Dimension 3 = " +
+      (math.round(dimensions(2) * 10000) / 100).toString +
+      "% Explanatory power"
+    p3.ylabel = "Dimension 4 = " +
+      (math.round(dimensions(3) * 10000) / 100).toString +
+      "% Explanatory power"
+    val p4 = f.subplot(2, 2, 3)
+    p4 += scatter(rowCoords(3, ::).t, rowCoords(4, ::).t, (x) => 0.05,
+      (y) => Color.BLUE, labels=rLabels)
+    p4 += scatter(colCoords(3, ::).t, colCoords(4, ::).t, (x) => 0.2,
+      (y) => Color.RED, labels=colLabels)
+    p4.title = "Correspondence Analysis of Cybersecurity Strategies by Country"
+    p4.xlabel = "Dimension 4 = " +
+      (math.round(dimensions(3) * 10000) / 100).toString +
+      "% Explanatory power"
+    p4.ylabel = "Dimension 5 = " +
+      (math.round(dimensions(4) * 10000) / 100).toString +
+      "% Explanatory power"
+    f.saveas("cybersecurity.pdf", dpi=300)
   }
 }
 

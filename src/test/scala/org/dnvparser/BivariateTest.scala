@@ -45,6 +45,7 @@ class BivariateTest extends AsyncFunSuite with BeforeAndAfter with Matchers {
   val file = getClass.getResource("/bivariate_sample.dnv").getPath
   val bivariate = Bivariate(file)
 
+
   test ("Gets the bivariate file") {
     val test = bivariate.nodesReader
     val edgeTest = bivariate.edges
@@ -62,5 +63,37 @@ class BivariateTest extends AsyncFunSuite with BeforeAndAfter with Matchers {
       "Superpowers", "Rice", "7"))
     cols.map(x => x.label) should equal (Vector("Canada", "China", "India",
         "US", "Mexico", "6"))
+  }
+
+  test("Creates a n X m Matrix") {
+    val test = bivariate.createMatrix()
+    val colLabels = Vector("Asian", "North America", "Superpowers", "Rice", "7")
+    val rowLabels = Vector("Canada", "China", "India", "US", "Mexico", "6")
+    val expected: DenseMatrix[Double] = DenseMatrix(
+      (0.0,1.0,1.0,0.0,0.0,0.0),
+      (1.0,0.0,0.0,1.0,1.0,0.0),
+      (0.0,1.0,0.0,1.0,0.0,0.0),
+      (0.0,1.0,1.0,0.0,1.0,0.0),
+      (0.0,0.0,0.0,0.0,0.0,1.0))
+    test should be (BivariateMatrix(
+      colLabels,
+      colLabels,
+      rowLabels,
+      rowLabels,
+      expected))
+  }
+
+  test("Removes Singles") {
+    val removed = bivariate.removeSingles()
+    val colLabels = Vector("Asian", "North America", "Superpowers", "Rice")
+    val rowLabels = Vector("China", "India", "US", "Mexico")
+    removed should be (BivariateMatrix(
+      colLabels, colLabels,
+      rowLabels, rowLabels,
+      DenseMatrix(
+        (1.0, 1.0, 0.0, 0.0),
+        (0.0, 0.0, 1.0, 1.0),
+        (1.0, 0.0, 1.0, 0.0),
+        (1.0, 1.0, 0.0, 1.0))))
   }
 }

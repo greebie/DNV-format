@@ -35,6 +35,9 @@ package object dnvparser {
   class ModelErrorException(s: String) extends Exception(s) {}
   case class Node(nid: Long = -1, label: String = "-1",
     attributes: Map[String, String] = Map[String, String]())
+  case class BivariateMatrix(rowLabels: Vector[String],
+    rowAbbrev: Vector[String], colLabels: Vector[String],
+    colAbbrev: Vector[String], matrix: DenseMatrix[Double])
   case class Edge(efrom: Long, eto: Long, attributes: Map[String, String])
   case class Formula (network: DenseMatrix[Double], constant: String,
     param: Map[String, Any], atts: Vector[Node])
