@@ -30,17 +30,18 @@ package org.dnvparser
 
 import scala.io.Source
 import org.apache.commons.io.FileUtils
-import org.scalatest.{AsyncFunSuite, BeforeAndAfter}
+import org.scalatest.{AsyncFunSuite, BeforeAndAfter, Matchers}
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import breeze.linalg.{DenseMatrix}
 import scala.util.Try
 import java.io.File
 import java.nio.file.{Files, Paths}
+import scala.concurrent.Future
 
 
 @RunWith(classOf[JUnitRunner])
-class AppTest extends AsyncFunSuite with BeforeAndAfter {
+class AppTest extends AsyncFunSuite with BeforeAndAfter with Matchers {
   val file = getClass.getResource("/sample_edge_list.dnv").getPath
   val output = getClass.getResource("").getPath + "/output"
   val start = App.main(Array(file, output))
@@ -61,30 +62,48 @@ class AppTest extends AsyncFunSuite with BeforeAndAfter {
 
   test("Check output file details") {
     val test = Source.fromFile(output).getLines.take(5).toVector
+    val testEigs = test.map(x => {
+      val eig = x.split(",")(2)
+      eig.substring(0, eig.length -1).toDouble})
     val expected = Vector(
       "((0,Bob Bobblewot),0.0)",
-      "((1,Sandy Poland),0.24124095066299805)",
-      "((2,Anderson Li),0.4749997675376122)",
-      "((3,4),0.38224854206815667)",
-      "((4,8),0.11675351812220724)"
-    )
-    assert(test == expected)
+      "((1,Sandy Poland),0.2514859146010396)",
+      "((2,Anderson Li),0.6180756337795154)",
+      "((3,4),0.5557103647670811)",
+      "((4,6),0.7618384150998224)")
+    val idents = expected.map(x => x.split(",")(0))
+    val eigs = expected.map(x => {
+      val eig = x.split(",")(2)
+      eig.substring(0, eig.length -1).toDouble
+    })
+    val comparison = testEigs.zip(eigs).toVector
+    comparison.foreach ({case (x: Double, y: Double) =>
+      x  should equal (y +- 0.00001)
+    })
+    assert(test.map(x => x.split(",")(0)) == idents)
   }
 
   test("Check on null param") {
     val invalid = App.main(Array(null, null))
     val expected = Vector(
       "((0,Bob Bobblewot),0.0)",
-      "((1,Sandy Poland),0.24124095066299805)",
-      "((2,Anderson Li),0.4749997675376122)",
-      "((3,4),0.38224854206815667)",
-      "((4,8),0.11675351812220724)"
-    )
+      "((1,Sandy Poland),0.2514859146010396)",
+      "((2,Anderson Li),0.6180756337795154)",
+      "((3,4),0.5557103647670811)",
+      "((4,6),0.7618384150998224)")
     val test = Source.fromFile(output).getLines.take(5).toVector
-    assert(test == expected)
+    val testEigs = test.map(x => {
+      val eig = x.split(",")(2)
+      eig.substring(0, eig.length -1).toDouble})
+    val idents = expected.map(x => x.split(",")(0))
+    val eigs = expected.map(x => {
+      val eig = x.split(",")(2)
+      eig.substring(0, eig.length -1).toDouble
+    })
+    val comparison = testEigs.zip(eigs).toVector
+    comparison.foreach ({case (x: Double, y: Double) =>
+      x should equal (y +- 0.00001)
+    })
+    assert(test.map(x => x.split(",")(0)) == idents)
   }
-
-
-
-
 }

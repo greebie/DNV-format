@@ -41,7 +41,7 @@ class NetworkTest extends FunSuite with BeforeAndAfter {
   val file2 = getClass.getResource("/sample_edge_list2.dnv").getPath
   val network = Network(file)
   val bob = DenseVector(1.0,1.0,1.0,0.0,0.0,0.0,0.0,0.0,0.0)
-  val george = DenseVector(0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0)
+  val george = DenseVector(0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0)
 
   before {
     network.directed = false
@@ -51,14 +51,14 @@ class NetworkTest extends FunSuite with BeforeAndAfter {
     val nodeIdent: String = "Bob Bobblewot"
     val nodeIdent2: String = "George"
     val nodeIdent3: String = "Fake"
-    assert(network.outNeighbors(nodeIdent3) == Vector())
-    assert(network.inNeighbors(nodeIdent3) == Vector())
-    assert(network.outNeighbors(nodeIdent).map(_.nid) == Vector(1, 2, 0))
+    assertResult(Vector()){network.outNeighbors(nodeIdent3)}
+    assertResult(Vector()) {network.inNeighbors(nodeIdent3)}
+    assertResult(Vector(1, 2, 0)){network.outNeighbors(nodeIdent).map(_.nid)}
     assert(network.inNeighbors(nodeIdent).map(_.nid) == Vector(0, 1, 2, 3))
     assert(network.neighbors(nodeIdent).map(_.nid) == Vector(1, 2, 0, 3))
-    assert(network.outNeighbors(nodeIdent2).map(_.nid) == Vector(4, 6, 7))
+    assertResult(Vector(5, 7, 8)){network.outNeighbors(nodeIdent2).map(_.nid)}
     assert(network.inNeighbors(nodeIdent2).map(_.nid) == Vector())
-    assert(network.neighbors(nodeIdent2).map(_.nid) == Vector(4, 6, 7))
+    assertResult(Vector(5, 7, 8)){network.neighbors(nodeIdent2).map(_.nid)}
     network.directed = true
     assert(network.neighbors(nodeIdent).map(_.nid) == Vector(1, 2, 0,
       0, 1, 2, 3))
@@ -68,7 +68,7 @@ class NetworkTest extends FunSuite with BeforeAndAfter {
     val nodeset = network.nodeSet()
     assert(nodeset.map(_._1) == Vector(0,1,2,3,4,5,6,7,8))
     assert(nodeset.map(_._2) == Vector("Bob Bobblewot", "Sandy Poland",
-      "Anderson Li", "4", "8", "George", "9", "10", "6"))
+      "Anderson Li", "4", "6", "8", "George", "9", "10"))
   }
 
   test ("Get the matrix rows") {
@@ -88,17 +88,18 @@ class NetworkTest extends FunSuite with BeforeAndAfter {
     val matrix = network.degreeMatrix()
     val in = network.degreeMatrix("in")
     val out = network.degreeMatrix("out")
-    assert(matrix == DenseMatrix(Array(4,  2,  3,  3,  5,  3,  3,  3,  3)))
-    assert(out == DenseMatrix(Array(3,  1,  2,  3,  3,  3,  0,  0,  3)))
-    assert(in == DenseMatrix(Array(4,  2,  3,  0,  3,  0,  3,  3,  0)))
+    assert(matrix == DenseMatrix(Array(4.0, 2.0, 3.0, 3.0, 3.0, 5.0, 3.0, 3.0,
+      3.0)))
+    assert(out == DenseMatrix(Array(3,  1,  2,  3,  3,  3,  3, 0, 0 )))
+    assert(in == DenseMatrix(Array(4,  2,  3,  0,  0, 3,  0,  3,  3)))
     network.directed = true
     val newMatrix = network.degreeMatrix()
-    assert(newMatrix == DenseMatrix(Array(7, 3, 5, 3, 6, 3, 3, 3, 3)))
+    assert(newMatrix == DenseMatrix(Array(7, 3, 5, 3, 3, 6, 3, 3, 3)))
   }
 
   test("Eigenvector Degree") {
     val eig = network.normalizeValues(network.eigenVectorCentrality())
     assert(eig.map(x => "%.2f".format(x).toDouble).t == DenseMatrix(Array(0.0,
-      0.24, 0.47, 0.38, 0.12, 0.81, 0.56, 0.56, 1.0)))
+      0.24, 0.47, 0.38, 0.81, 0.12, 1.0, 0.56, 0.56)))
   }
 }
